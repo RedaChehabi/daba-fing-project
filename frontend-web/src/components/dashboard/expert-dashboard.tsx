@@ -56,9 +56,9 @@ const ExpertDashboard = () => {
   return (
     <div className="space-y-6"> {/* Adjust padding if needed based on layout */}
       <DashboardHeader
-    title="Expert Dashboard"
-    description="Manage assigned cases and review analyses."
-    />
+        title="Expert Dashboard"
+        description="Manage assigned cases and review analyses."
+      />
 
 
       {/* Stats Cards */}

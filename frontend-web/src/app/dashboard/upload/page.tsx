@@ -440,10 +440,10 @@ export default function UploadPage() {
 
                 {/* Camera Area */}
                 {uploadMethod === "camera" && (
-        <Suspense fallback={<div className="h-[300px] w-full bg-muted/20 animate-pulse rounded-lg flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
-          <CameraUploadArea {...cameraUploadProps} ref={webcamRef} /> {/* Pass ref here */}
-        </Suspense>
-      )}
+                  <Suspense fallback={<div className="h-[300px] w-full bg-muted/20 animate-pulse rounded-lg flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+                    <CameraUploadArea {...cameraUploadProps} ref={webcamRef} /> {/* Pass ref here */}
+                  </Suspense>
+                )}
 
                 {/* Upload Guidelines Card */}
                 <Suspense fallback={<div className="h-[200px] w-full bg-muted/20 animate-pulse rounded-lg"></div>}>
