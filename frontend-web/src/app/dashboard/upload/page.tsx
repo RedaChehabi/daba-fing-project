@@ -8,8 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Camera, File, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
-import { fingerprints } from "@/utils/api"
+// REMOVE this line if it exists:
+// import { fingerprints } from "@/utils/api";
 
+// ADD or ENSURE this line exists (assuming your service is structured this way):
+import { fingerprintService } from '@/services/api';
 // Dynamically import Webcam component to reduce initial bundle size
 const Webcam = dynamic(() => import("react-webcam"), {
   ssr: false,
@@ -74,7 +77,7 @@ export default function UploadPage() {
 
   // --- Refs ---
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const webcamRef = useRef<any>(null)
+  const webcamRef = useRef<any>(null); // Keep the ref here in the parent
 
   // --- Handlers for File Upload ---
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -219,13 +222,11 @@ export default function UploadPage() {
       // Try to use the real API
       try {
         // Upload the fingerprint
-        const uploadResponse = await fingerprints.upload({
-          image: imageBlob,
-          name: sourceName,
-        })
+        const uploadResponse = await fingerprintService.uploadFingerprint(formData);
+
 
         // Analyze the fingerprint
-        const analysisResponse = await fingerprints.analyze(uploadResponse.id)
+        const analysisResponse = await fingerprintService.analyzeFingerprint(uploadResponse.id);
 
         clearInterval(progressInterval)
         setUploadProgress(100)
@@ -328,28 +329,21 @@ export default function UploadPage() {
       cameraEnabled,
       capturedImage,
       uploadStatus,
-      uploadProgress,
+      // uploadProgress, // This prop was not used by CameraUploadArea in your original structure
       errorMessage,
-      webcamRef,
+      // webcamRef, // Ref will be passed directly to the lazy loaded component
       videoConstraints,
       capture,
       handleCameraEnable,
       handleCloseCamera,
       handleAnalyze,
+      WebcamComponent: Webcam // Pass the dynamically imported Webcam
     }),
     [
-      cameraEnabled,
-      capturedImage,
-      uploadStatus,
-      uploadProgress,
-      errorMessage,
-      videoConstraints,
-      capture,
-      handleCameraEnable,
-      handleCloseCamera,
-      handleAnalyze,
-    ],
-  )
+      cameraEnabled, capturedImage, uploadStatus, errorMessage, videoConstraints,
+      capture, handleCameraEnable, handleCloseCamera, handleAnalyze, Webcam // Add Webcam to dependencies
+    ]
+  );
 
   const resultsViewProps = useMemo(
     () => ({
@@ -446,10 +440,10 @@ export default function UploadPage() {
 
                 {/* Camera Area */}
                 {uploadMethod === "camera" && (
-                  <Suspense fallback={<div className="h-[300px] w-full bg-muted/20 animate-pulse rounded-lg"></div>}>
-                    <CameraUploadArea {...cameraUploadProps} Webcam={Webcam} />
-                  </Suspense>
-                )}
+        <Suspense fallback={<div className="h-[300px] w-full bg-muted/20 animate-pulse rounded-lg flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+          <CameraUploadArea {...cameraUploadProps} ref={webcamRef} /> {/* Pass ref here */}
+        </Suspense>
+      )}
 
                 {/* Upload Guidelines Card */}
                 <Suspense fallback={<div className="h-[200px] w-full bg-muted/20 animate-pulse rounded-lg"></div>}>

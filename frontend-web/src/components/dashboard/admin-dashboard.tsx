@@ -13,6 +13,8 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+// Import DashboardHeader component
+import DashboardHeader from './dashboard-header'; // Ensure this import is removed or commented out
 // Added icons: Users, Activity, Server, CheckCircle, BarChart3, FileCog, ArrowRight
 import { Users, Activity, Server, CheckCircle, BarChart3, FileCog, ArrowRight } from 'lucide-react';
 import Link from 'next/link'; // Import Link
@@ -36,13 +38,10 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6"> {/* Removed p-4 md:p-6 if layout handles it */}
-       {/* REMOVE the DashboardHeader component usage */}
-       {/*
        <DashboardHeader
-        title="Admin Dashboard"
-        description="System overview and management tools."
-      />
-      */}
+          title="Admin Dashboard"
+          description="System overview and management tools."
+        />
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

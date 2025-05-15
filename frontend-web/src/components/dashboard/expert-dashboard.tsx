@@ -14,6 +14,8 @@ import {
   Cell,
   Tooltip,
 } from "recharts";
+// Import DashboardHeader component
+import DashboardHeader from './dashboard-header'; // Ensure this import is removed or commented out
 // Import necessary icons from lucide-react
 import { FileText, Clock, CheckCircle, List, Eye, Play, PieChart, MessageSquareQuote, BookOpen, ArrowRight } from 'lucide-react'; // Added PieChart, MessageSquareQuote, BookOpen, ArrowRight
 import Link from 'next/link'; // Import Link
@@ -53,14 +55,10 @@ const ExpertDashboard = () => {
 
   return (
     <div className="space-y-6"> {/* Adjust padding if needed based on layout */}
-      {/* REMOVE THIS BLOCK START */}
-      {/*
       <DashboardHeader
-        title="Expert Dashboard"
-        description="Manage assigned cases and review analyses."
-      />
-      */}
-      {/* REMOVE THIS BLOCK END */}
+    title="Expert Dashboard"
+    description="Manage assigned cases and review analyses."
+    />
 
 
       {/* Stats Cards */}

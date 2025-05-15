@@ -16,30 +16,69 @@ def fingerprint_upload_path(instance, filename):
     return os.path.join('fingerprints', new_filename)
 
 # Update the UserRole model to match what's in the database
+# File: backend/api/models.py
 class UserRole(models.Model):
-    role_name = models.CharField(max_length=50)
-    access_level = models.IntegerField(default=1)
+    # Define role constants for internal use and choices
+    ROLE_REGULAR = "Regular"
+    ROLE_EXPERT = "Expert"
+    ROLE_ADMIN = "Admin"
+
+    ROLE_CHOICES = [
+        (ROLE_REGULAR, "Regular User"),   # Value stored in DB, Human-readable name
+        (ROLE_EXPERT, "Expert User"),
+        (ROLE_ADMIN, "Administrator"),
+    ]
+
+    role_name = models.CharField(
+        max_length=50,
+        choices=ROLE_CHOICES,
+        default=ROLE_REGULAR,
+        unique=True # Ensures role names are unique
+    )
+    description = models.TextField(blank=True, null=True)
+    access_level = models.IntegerField(default=1)  # e.g., 1 for Regular, 2 for Expert, 3 for Admin
+
+    # Specific permissions (can be expanded)
     can_provide_expert_feedback = models.BooleanField(default=False)
     can_manage_users = models.BooleanField(default=False)
-    can_access_analytics = models.BooleanField(default=False)  # Add this field
-    description = models.TextField(blank=True, null=True)
-    
-    def __str__(self):
-        return self.role_name
+    can_access_analytics = models.BooleanField(default=False)
 
+    def __str__(self):
+        return self.get_role_name_display() # This will return the human-readable name
+
+    def save(self, *args, **kwargs):
+        # Automatically set access_level and basic permissions based on role_name
+        if self.role_name == self.ROLE_EXPERT:
+            self.access_level = 2
+            self.can_provide_expert_feedback = True
+            self.can_manage_users = False # Experts typically don't manage other users
+            self.can_access_analytics = False # Experts might not need full analytics
+        elif self.role_name == self.ROLE_ADMIN:
+            self.access_level = 3
+            self.can_provide_expert_feedback = True # Admins can also be experts
+            self.can_manage_users = True
+            self.can_access_analytics = True
+        else: # Regular User
+            self.access_level = 1
+            self.can_provide_expert_feedback = False
+            self.can_manage_users = False
+            self.can_access_analytics = False
+        super().save(*args, **kwargs)
+
+# Ensure UserProfile links correctly
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    role = models.ForeignKey(UserRole, on_delete=models.SET_NULL, null=True, related_name='users')
+    role = models.ForeignKey(UserRole, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
+    # ... other UserProfile fields from your existing model
     first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)
     profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)
     contact_number = models.CharField(max_length=20, blank=True, null=True)
-    # Change auto_now_add to default with timezone.now
     registration_date = models.DateField(default=timezone.now)
     is_active = models.BooleanField(default=True)
     last_login = models.DateTimeField(blank=True, null=True)
     preferred_platform = models.CharField(max_length=50, blank=True, null=True)
-    
+
     def __str__(self):
         return f"{self.user.username}'s Profile"
 
