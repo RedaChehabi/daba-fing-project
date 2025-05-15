@@ -39,22 +39,26 @@ export default function RegisterPage() {
 
     setIsLoading(true)
     try {
-      // AuthContext's register function should handle both registration and subsequent login/profile fetching
-      await register(username, email, password)
-      router.push("/dashboard") // Navigate on successful registration & auto-login
+      await register(username, email, password); // from useAuth()
+      router.push("/dashboard");
     } catch (err: any) {
-      console.error("Registration page error:", err)
-      let errorMessage = "An unexpected error occurred during registration.";
-       if (err.message) {
+      console.error("Detailed Registration Page Error:", err); // CHECK BROWSER CONSOLE FOR THIS
+      console.error("Error message:", err.message);
+      console.error("Error stack:", err.stack);
+  
+      let errorMessage = "An unexpected error occurred during registration. Please try again.";
+      if (err.message) {
         if (err.message.toLowerCase().includes("failed to fetch") || err.message.toLowerCase().includes("networkerror")) {
           errorMessage = "Cannot connect to the server. Please check your internet connection or try again later.";
-        } else if (err.message.length < 200) { // Show backend's message if it's reasonably short
+        } else if (err.message.length < 200 && !err.message.toLowerCase().includes("json")) { // Avoid showing raw HTML/JSON parse errors
             errorMessage = err.message;
+        } else if (err.message.toLowerCase().includes("json")) {
+            errorMessage = "Received an invalid response from the server. Please try again."
         }
       }
       setError(errorMessage);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

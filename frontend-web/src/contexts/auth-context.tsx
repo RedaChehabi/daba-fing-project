@@ -118,15 +118,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (username: string, email: string, password: string) => {
     setLoading(true);
     try {
-      const registerResponse = await apiAuth.register(username, email, password); // Uses utils/api.ts
-      // registerResponse contains the token and basic user data
-      // fetchUserProfile will use the token set by apiAuth.register
-      await fetchUserProfile(registerResponse.token);
-      // router.push("/dashboard"); // Navigation should happen in the component calling register
+      const registrationData = await apiAuth.register(username, email, password); // from utils/api.ts
+      console.log("AuthContext: Registration data from apiAuth.register:", registrationData); // Log what's received
+  
+      if (registrationData.token) {
+        // This part is key: if token is here, registration was successful from API's perspective
+        localStorage.setItem("token", registrationData.token);
+        // Attempt to fetch full user profile to complete the "login" part
+        await fetchUserProfile(registrationData.token); // This should set the user in context
+        // router.push("/dashboard"); // Navigation should be handled by the page after promise resolves
+      } else {
+        // This case means user might be in DB, but token wasn't returned by /api/register/
+        // Or apiAuth.register itself threw an error before this point.
+        console.error("AuthContext: Registration succeeded but no token in response from apiAuth.register.");
+        throw new Error("Registration completed, but automatic login failed. Please try logging in manually.");
+      }
     } catch (error) {
-      console.error("AuthContext registration failed:", error);
-      setUser(null); // Ensure user is cleared
-      throw error;
+      console.error("AuthContext registration process failed:", error);
+      setUser(null);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user_data");
+      throw error; // Re-throw for the page to catch and display
     } finally {
       setLoading(false);
     }
