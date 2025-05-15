@@ -1,0 +1,65 @@
+# Navigate to where you want your main project folder
+cd path/to/your/projects
+
+# Create the main project folder
+mkdir daba-fing-project
+cd daba-fing-project
+
+# 1. Create backend directory and navigate into it
+mkdir backend
+cd backend
+
+# 2. Create and activate a Python virtual environment
+python -m venv venv
+# On Windows:
+.\venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+# (You should see "(venv)" preceding your terminal prompt)
+
+# 3. Install Django, Django REST Framework, requests (for calling ML API), and python-dotenv
+pip install django djangorestframework requests python-dotenv
+
+# 4. Save dependencies to requirements.txt
+pip freeze > requirements.txt
+
+# 5. Create the Django project (named 'daba_fing_backend') in the current directory
+#    Don't forget the dot '.' at the end!
+django-admin startproject daba_fing_backend .
+
+# 6. Create a Django app for your API logic (named 'api')
+python manage.py startapp api
+
+# 7. ***** IMPORTANT: Register your app and DRF *****
+#    Open backend/daba_fing_backend/settings.py in your code editor
+#    Find the INSTALLED_APPS list and add 'rest_framework' and 'api':
+#    INSTALLED_APPS = [
+#        ...,
+#        'rest_framework',
+#        'api', # Add this
+#    ]
+#    Save the file.
+
+# 8. Run initial database migrations
+python manage.py migrate
+
+# 9. (Optional) Create a superuser for Django Admin access later
+# python manage.py createsuperuser
+
+# 10. Verify Django installation by running the development server
+python manage.py runserver
+#    Open your web browser to http://127.0.0.1:8000/
+#    You should see the default Django success page. Stop the server with Ctrl+C.
+
+# 11. Create a .gitignore file in this 'backend' folder (or add to top-level)
+#     Add at least:
+#     venv/
+#     *.pyc
+#     __pycache__/
+#     db.sqlite3  # If using SQLite default
+#     staticfiles/
+#     media/
+#     .env
+
+cd ..
+# (You are now back in the main 'daba-fing-project' directory)

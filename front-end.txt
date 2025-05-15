@@ -1,0 +1,37 @@
+# (Make sure you are in the main 'daba-fing-project' directory)
+# If you created the Vite frontend-web folder, remove it first:
+# rm -rf frontend-web  # On macOS/Linux
+# rmdir /s /q frontend-web # On Windows
+
+# 1. Create the Next.js project using the official installer
+npx create-next-app@latest frontend-web
+
+# 2. You will be asked several questions. Here are recommended answers:
+#    ✔ Would you like to use TypeScript? ... Yes
+#    ✔ Would you like to use ESLint? ... Yes
+#    ✔ Would you like to use Tailwind CSS? ... Yes  <-- IMPORTANT! Select Yes here.
+#    ✔ Would you like to use `src/` directory? ... Yes
+#    ✔ Would you like to use App Router? (recommended) ... Yes
+#    ✔ Would you like to customize the default import alias? ... No (or Yes if you have a preference)
+#    (Wait for the installation to complete)
+
+# 3. Navigate into your new frontend project directory
+cd frontend-web
+
+# 4. Install Axios for making API calls
+npm install axios
+
+# 5. Verify the setup
+npm run dev
+#    Open your web browser to the URL provided (usually http://localhost:3000).
+#    You should see the default Next.js starter page.
+#    Since you selected Tailwind during setup, it's already configured.
+#    Try editing `src/app/page.tsx` and adding/modifying Tailwind classes
+#    (e.g., className="text-xl text-blue-600") to confirm it's working.
+#    Stop the server with Ctrl+C.
+
+# 6. Check .gitignore: `create-next-app` usually generates a good .gitignore file
+#    It should already include node_modules/, .next/, .env*. Make sure it does.
+
+cd ..
+# (You are now back in the main 'daba-fing-project' directory)
