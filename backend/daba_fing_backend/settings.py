@@ -30,8 +30,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-xtrqb0fj!6w^-9cml!uj9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# For local development
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+if DEBUG:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1'] # Add your local network IP if needed
+    # Example: ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.100']
+else:
+    ALLOWED_HOSTS = ['your_production_domain.com', 'www.your_production_domain.com'] # Replace with your actual domains
 
 # If you access your dev server via its IP on your local network (e.g., 192.168.1.100):
 # ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.100']
