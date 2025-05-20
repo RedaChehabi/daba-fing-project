@@ -37,7 +37,7 @@ export default function LoginPage() {
         if (err.message.toLowerCase().includes("failed to fetch") || err.message.toLowerCase().includes("networkerror")) {
           errorMessage = "Cannot connect to the server. Please check your internet connection or try again later.";
         } else if (err.message.toLowerCase().includes("unable to log in with provided credentials") ||
-                   err.message.toLowerCase().includes("no active account found with the given credentials")) {
+                  err.message.toLowerCase().includes("no active account found with the given credentials")) {
           errorMessage = "Invalid username or password. Please check your credentials.";
         } else if (err.message.length < 150) { // Show backend's message if it's reasonably short
             errorMessage = err.message;
@@ -57,7 +57,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-background to-muted/40 p-4">
       <motion.div /* ... DabaFing Logo ... */ >
         {/* ... existing logo JSX ... */}
-         <Link href="/" className="flex items-center gap-3 px-2">
+          <Link href="/" className="flex items-center gap-3 px-2">
           <motion.div
             whileHover={{ rotate: 360 }}
             transition={{ duration: 0.6 }}
@@ -98,7 +98,7 @@ export default function LoginPage() {
             </div>
             {/* Password Input */}
             <div className="relative">
-               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}

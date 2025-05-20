@@ -3,17 +3,26 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { auth as apiAuth } from "@/utils/api"; // Import the refined auth utility
+import { auth as apiAuthUtils } from "@/utils/api"; // Assuming your auth utilities are aliased or directly imported
+
+// Use NEXT_PUBLIC_ environment variable for the API base URL
+const API_BASE_URL_CONTEXT = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_BASE_URL_CONTEXT) {
+  console.error("FATAL ERROR in AuthContext: NEXT_PUBLIC_API_URL is not defined. Please set it in your .env.local file in the frontend-web directory.");
+  // Consider throwing an error or setting a default for local dev,
+  // but it's crucial this is set for the app to function.
+}
 
 // Define UserRole based on consistent values expected from backend
-export type UserRole = "Regular" | "Expert" | "Admin" | string; // string for flexibility
+export type UserRole = "Regular" | "Expert" | "Admin" | string; // Added string for flexibility
 
 export interface User {
   id: string;
   username: string;
   email: string;
   role: UserRole;
-  // Add other user properties fetched from /userprofile/ if needed
+  // Optional detailed profile fields that might be fetched by fetchUserProfile
   first_name?: string;
   last_name?: string;
 }
@@ -25,14 +34,12 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   register: (username: string, email: string, password: string) => Promise<void>;
-  updateUser: (userData: Partial<User>) => void; // For local updates, e.g., after profile edit
-  fetchUserProfile: (token?: string) => Promise<void>; // To refresh or fetch user profile
-  setUserRole: (role: UserRole) => void; // For demo/admin role switching (simulated)
+  updateUser: (userData: Partial<User>) => void; // For local UI updates after profile edit, etc.
+  fetchUserProfile: (token?: string) => Promise<void>; // To refresh or initially fetch user profile
+  setUserRole: (role: UserRole) => void; // For demo/admin role switching (simulated client-side)
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -40,50 +47,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   const fetchUserProfile = useCallback(async (tokenOverride?: string) => {
+    if (!API_BASE_URL_CONTEXT) {
+        console.error("AuthContext: Cannot fetch user profile - API_BASE_URL_CONTEXT is not configured.");
+        // Clear user state if API URL is missing, as we can't verify auth
+        setUser(null);
+        localStorage.removeItem("user_data");
+        localStorage.removeItem("token");
+        // setLoading(false); // Caller should handle this or the initial useEffect
+        return;
+    }
+
     const tokenToUse = tokenOverride || localStorage.getItem("token");
 
     if (!tokenToUse) {
       setUser(null);
       localStorage.removeItem("user_data"); // Ensure consistency
-      // setLoading(false); // setLoading will be handled by the caller or initial effect
+      // setLoading(false); // Handled by initial useEffect or calling function
       return; // No token, so no user
     }
 
-    // setLoading(true); // Indicate fetching profile
     try {
-      const response = await fetch(`${API_BASE_URL}/userprofile/`, {
+      const response = await fetch(`${API_BASE_URL_CONTEXT}/userprofile/`, {
         headers: { "Authorization": `Token ${tokenToUse}` }
       });
 
       if (response.ok) {
         const profileData = await response.json();
-        // Map backend response to frontend User interface
         const fetchedUser: User = {
-          id: profileData.id,
-          username: profileData.username,
-          email: profileData.email,
-          role: profileData.role, // Assuming backend sends "Regular", "Expert", "Admin"
-          first_name: profileData.profile?.first_name,
+          id: profileData.id || "",
+          username: profileData.username || "",
+          email: profileData.email || "",
+          role: profileData.role || "Regular", // Ensure backend sends "Regular", "Expert", "Admin"
+          first_name: profileData.profile?.first_name, // Assuming profile details are nested
           last_name: profileData.profile?.last_name,
         };
         setUser(fetchedUser);
-        localStorage.setItem("user_data", JSON.stringify(fetchedUser)); // Update with fresh data
+        localStorage.setItem("user_data", JSON.stringify(fetchedUser));
       } else {
-        // Token might be invalid or expired
-        console.warn("Failed to fetch user profile, token might be invalid.");
-        apiAuth.logout(); // Clear token and user_data
+        console.warn("AuthContext: Failed to fetch user profile, token might be invalid or expired.");
+        apiAuthUtils.logout(); // Use the utility to clear localStorage
         setUser(null);
-        // router.push("/auth/login"); // Optional: redirect if profile fetch fails for authenticated route
+        // Optionally, redirect to login if this happens on a protected route,
+        // though layout should handle redirects based on isAuthenticated.
+        // router.push("/auth/login");
       }
     } catch (error) {
-      console.error("Error fetching user profile:", error);
-      apiAuth.logout(); // Clear token and user_data on error
+      console.error("AuthContext: Error fetching user profile:", error);
+      apiAuthUtils.logout(); // Clear local auth state on any fetch error
       setUser(null);
     }
-    // finally {
-    //   setLoading(false);
-    // }
-  }, [router]); // API_BASE_URL is stable
+  }, [router]); // Removed API_BASE_URL_CONTEXT from deps as it's module-level const
 
   useEffect(() => {
     const attemptAutoLogin = async () => {
@@ -95,20 +108,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
     attemptAutoLogin();
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile]); // fetchUserProfile is memoized with useCallback
 
   const login = async (username: string, password: string) => {
     setLoading(true);
     try {
-      const loginResponse = await apiAuth.login(username, password); // Uses utils/api.ts
-      // loginResponse contains the token and basic user data
-      // fetchUserProfile will use the token set by apiAuth.login and update the context user
-      await fetchUserProfile(loginResponse.token);
-      // router.push("/dashboard"); // Navigation should happen in the component calling login
+      const loginResponse = await apiAuthUtils.login(username, password);
+      // apiAuthUtils.login now stores token and basic user_data in localStorage
+      await fetchUserProfile(loginResponse.token); // Fetch full profile using the new token
+      // Navigation to "/dashboard" should be handled by the calling page (e.g., LoginPage)
     } catch (error) {
-      // Error is already thrown by apiAuth.login, just re-throw for component to handle
-      console.error("AuthContext login failed:", error);
-      setUser(null); // Ensure user is cleared
+      console.error("AuthContext: Login failed:", error);
+      setUser(null); // Ensure user state is cleared on login failure
+      // Error is re-thrown by apiAuthUtils.login, so the calling page can display it
       throw error;
     } finally {
       setLoading(false);
@@ -118,69 +130,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (username: string, email: string, password: string) => {
     setLoading(true);
     try {
-      const registrationData = await apiAuth.register(username, email, password); // from utils/api.ts
-      console.log("AuthContext: Registration data from apiAuth.register:", registrationData); // Log what's received
-  
-      if (registrationData.token) {
-        // This part is key: if token is here, registration was successful from API's perspective
-        localStorage.setItem("token", registrationData.token);
-        // Attempt to fetch full user profile to complete the "login" part
-        await fetchUserProfile(registrationData.token); // This should set the user in context
-        // router.push("/dashboard"); // Navigation should be handled by the page after promise resolves
-      } else {
-        // This case means user might be in DB, but token wasn't returned by /api/register/
-        // Or apiAuth.register itself threw an error before this point.
-        console.error("AuthContext: Registration succeeded but no token in response from apiAuth.register.");
-        throw new Error("Registration completed, but automatic login failed. Please try logging in manually.");
-      }
+      const registerResponse = await apiAuthUtils.register(username, email, password);
+      // apiAuthUtils.register now stores token and basic user_data in localStorage
+      await fetchUserProfile(registerResponse.token); // Fetch full profile using the new token
+      // Navigation to "/dashboard" should be handled by the calling page (e.g., RegisterPage)
     } catch (error) {
-      console.error("AuthContext registration process failed:", error);
+      console.error("AuthContext: Registration failed:", error);
       setUser(null);
-      localStorage.removeItem("token");
-      localStorage.removeItem("user_data");
-      throw error; // Re-throw for the page to catch and display
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
+  // --- Functions you asked for ---
   const logout = useCallback(() => {
-    apiAuth.logout(); // Clears localStorage
-    setUser(null);
-    router.push("/auth/login"); // Navigate after state update
-  }, [router]);
+    apiAuthUtils.logout(); // This function should clear localStorage (token, user_data)
+    setUser(null); // Clear user state in the context
+    router.push("/auth/login"); // Navigate to login page
+  }, [router]); // Add router to dependency array
 
   const updateUser = (userData: Partial<User>) => {
     setUser(prevUser => {
       if (prevUser) {
-        const updated = { ...prevUser, ...userData };
-        localStorage.setItem("user_data", JSON.stringify(updated)); // Keep localStorage in sync
-        return updated;
+        const updatedUser = { ...prevUser, ...userData };
+        localStorage.setItem("user_data", JSON.stringify(updatedUser)); // Keep localStorage in sync
+        return updatedUser;
       }
-      return null;
+      return null; // Should not happen if updateUser is called when user exists
     });
   };
 
-  // This is a simulated role change for demo/admin UI purposes.
-  // A real implementation would require a backend API endpoint and likely re-fetching the user profile.
+  // This is a client-side simulation of role change for UI/demo purposes.
+  // A real role change would require a backend API call and re-fetching the user profile.
   const setUserRole = (role: UserRole) => {
     if (user) {
       console.warn(
-        "Simulating local role change for user:",
-        user.username,
-        "to",
-        role,
-        "This does NOT persist to the backend without an API call."
+        `AuthContext: Simulating local role change for user "${user.username}" to "${role}". This is not saved to the backend.`
       );
       const updatedUser = { ...user, role };
       setUser(updatedUser);
-      localStorage.setItem("user_data", JSON.stringify(updatedUser));
+      localStorage.setItem("user_data", JSON.stringify(updatedUser)); // Also update localStorage if you rely on it
     }
   };
+  // --- End functions you asked for ---
 
   const value = {
     user,
-    isAuthenticated: !!user && !!localStorage.getItem("token"), // More robust check
+    isAuthenticated: !!user && !!localStorage.getItem("token"), // Check both context user and token presence
     loading,
     login,
     logout,
