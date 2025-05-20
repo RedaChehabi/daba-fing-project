@@ -160,7 +160,24 @@ REST_FRAMEWORK = {
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # For development only
+DEBUG = True # Assuming this is already set
+
+# CORS settings
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+    # Or, for slightly more restriction in dev if you know your frontend port:
+    # CORS_ALLOWED_ORIGINS = [
+    #     "http://localhost:3000", # For Next.js dev
+    #     "http://localhost:3004", # If Electron dev uses this port
+    #     # Add other local dev origins if necessary
+    # ]
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        "https://your_production_frontend_domain.com",
+        # Add other production domains/subdomains if needed
+    ]
+    # You might also consider CORS_ALLOWED_ORIGIN_REGEXES for more complex patterns
 CORS_ALLOW_CREDENTIALS = True
 
 # Default primary key field type
