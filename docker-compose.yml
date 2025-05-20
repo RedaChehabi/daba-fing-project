@@ -1,17 +1,13 @@
 # File: docker-compose.yml
-# version: '3.8'  <--- DELETE THIS LINE (it should be at the very top of the file)
-
 services:
   db:
-    image: postgres:13
+    image: postgres:13 # Or postgres:17 if you've decided to upgrade
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=root # Consider moving to .env for production
-      - POSTGRES_DB=dabafing
+    env_file: # Add this to the db service
+      - ./backend/.env
     ports:
-      - "5433:5432" # Host:Container
+      - "5433:5432"
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -23,11 +19,11 @@ services:
     build: ./backend
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./backend:/app # Mounts your local backend code into the container
+      - ./backend:/app
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env # Loads environment variables from this file
+      - ./backend/.env
     depends_on:
       db:
         condition: service_healthy
@@ -35,4 +31,3 @@ services:
 
 volumes:
   postgres_data:
-    # driver: local # Optional: explicitly specify local driver

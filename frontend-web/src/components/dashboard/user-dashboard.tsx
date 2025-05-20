@@ -54,10 +54,10 @@ const UserDashboard = () => {
 
   return (
     <div className="space-y-6"> {/* Base styling for the dashboard page content */}
-      <DashboardHeader // <-- ADD THIS COMPONENT INSTANCE
-        title="User Dashboard"
-        description="Overview of your fingerprint analysis activity."
-      />
+      <DashboardHeader // This is the corrected header
+      title="User Dashboard"
+      description="Overview of your fingerprint analysis activity."
+    />
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
