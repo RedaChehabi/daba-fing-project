@@ -1,7 +1,7 @@
 # File: docker-compose.yml
 services:
   db:
-    image: postgres:13 # Or postgres:17 if you've decided to upgrade
+    image: postgres:17 # Or postgres:17 if you've decided to upgrade
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file: # Add this to the db service
