@@ -43,27 +43,28 @@ class UserRole(models.Model):
     can_manage_users = models.BooleanField(default=False)
     can_access_analytics = models.BooleanField(default=False)
 
-    def __str__(self):
-        return self.get_role_name_display() # This will return the human-readable name
-
     def save(self, *args, **kwargs):
         # Automatically set access_level and basic permissions based on role_name
         if self.role_name == self.ROLE_EXPERT:
             self.access_level = 2
             self.can_provide_expert_feedback = True
-            self.can_manage_users = False # Experts typically don't manage other users
-            self.can_access_analytics = False # Experts might not need full analytics
+            self.can_manage_users = False 
+            self.can_access_analytics = False
         elif self.role_name == self.ROLE_ADMIN:
             self.access_level = 3
-            self.can_provide_expert_feedback = True # Admins can also be experts
+            self.can_provide_expert_feedback = True 
             self.can_manage_users = True
             self.can_access_analytics = True
-        else: # Regular User
+        else: # Default to Regular User
+            self.role_name = self.ROLE_REGULAR # Explicitly set to Regular if not Expert or Admin
             self.access_level = 1
             self.can_provide_expert_feedback = False
             self.can_manage_users = False
             self.can_access_analytics = False
         super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return self.get_role_name_display()
 
 # Ensure UserProfile links correctly
 class UserProfile(models.Model):

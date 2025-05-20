@@ -22,7 +22,7 @@ urlpatterns = [
     # path('some_other_core_path/', include('some_other_app.urls')),
 ]
 
-# Serve media files in development (this logic is fine and common)
+# Serve media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) # Also good to have for static files if not using whitenoise yet

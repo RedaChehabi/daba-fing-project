@@ -15,6 +15,8 @@ from .models import (
 )
 # Removed UserProfile, UserRole, User imports here as they are already imported above or from auth.models
 from .serializers import FingerprintImageSerializer
+from django.db import transaction # Import transaction
+
 
 
 # --- Mock Analysis Function (actual model logic deferred) ---
@@ -51,24 +53,27 @@ class FingerprintAnalysisView(APIView):
 
             if not fingerprint_id:
                 return Response({
-                    "message": "Fingerprint ID is required.",
-                    "status": "error"
+                    "detail": "Fingerprint ID is required.", # Changed "message" to "detail" for consistency with DRF
+                    "status": "error" # You can keep this custom status or remove it if frontend adapts to DRF style
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             try:
                 fingerprint_image_instance = FingerprintImage.objects.get(id=fingerprint_id, user=request.user)
             except FingerprintImage.DoesNotExist:
                 return Response({
-                    "message": "Fingerprint not found or you do not have permission to access it.",
+                    "detail": "Fingerprint not found or you do not have permission to access it.",
                     "status": "error"
                 }, status=status.HTTP_404_NOT_FOUND)
 
             if not fingerprint_image_instance.image or not hasattr(fingerprint_image_instance.image, 'path'):
                 return Response({
-                    "message": "Fingerprint image file not found or path is invalid.",
+                    "detail": "Fingerprint image file not found or path is invalid for analysis.",
                     "status": "error"
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Assuming perform_mock_analysis might raise its own specific errors or a generic Exception
+            # If perform_mock_analysis can raise specific, catchable errors (e.g., ModelNotReadyError),
+            # you could catch those here.
             image_path = fingerprint_image_instance.image.path
             analysis_results_data = perform_mock_analysis(image_path)
 
@@ -91,47 +96,51 @@ class FingerprintAnalysisView(APIView):
                 classification=analysis_results_data.get("classification", "N/A"),
                 ridge_count=analysis_results_data.get("ridge_count", 0),
                 confidence_score=analysis_results_data.get("confidence_score", 0.0),
-                analysis_status="completed_mock",
+                analysis_status="completed_mock", # Consider a more descriptive status
                 processing_time=analysis_results_data.get("processing_time", "0s"),
                 is_validated=False,
                 analysis_results=analysis_results_data.get("analysis_details", {})
             )
 
             fingerprint_image_instance.is_processed = True
-            fingerprint_image_instance.preprocessing_status = "analyzed_mock"
+            fingerprint_image_instance.preprocessing_status = "analyzed_mock" # Consider a more descriptive status
             fingerprint_image_instance.save()
 
             AnalysisHistory.objects.create(
                 user=request.user,
                 image=fingerprint_image_instance,
                 analysis=analysis,
-                action_performed="mock_analysis_completed",
+                action_performed="mock_analysis_completed", # Be more specific if it's real analysis
                 platform_used=request.META.get('HTTP_USER_AGENT', 'unknown'),
                 device_info=request.META.get('REMOTE_ADDR', 'unknown')
             )
 
             return Response({
-                "message": "Fingerprint analysis (mock) completed successfully.",
+                "message": "Fingerprint analysis (mock) completed successfully.", # Keep "message" if frontend expects it
                 "status": "success",
                 "id": analysis.id,
                 "fingerprint_id": fingerprint_image_instance.id,
                 "classification": analysis.classification,
                 "ridge_count": analysis.ridge_count,
-                "confidence": analysis.confidence_score * 100, # Present as percentage
+                "confidence": analysis.confidence_score * 100, 
                 "processing_time": analysis.processing_time,
                 "additional_details": analysis.analysis_results
             }, status=status.HTTP_200_OK)
 
-        except FingerprintImage.DoesNotExist:
-            return Response({"message": "Fingerprint not found."}, status=status.HTTP_404_NOT_FOUND)
+        # Specific exceptions that might occur during the process
+        except FingerprintImage.DoesNotExist: # This is already handled above, but kept for clarity if refactored
+            return Response({"detail": "Fingerprint not found."}, status=status.HTTP_404_NOT_FOUND)
+        except KeyError as e: # Example: if request.data is missing an expected key
+            print(f"KeyError in FingerprintAnalysisView: {str(e)}")
+            return Response({"detail": f"Missing expected data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            # It's good practice to log the full error on the server for debugging
+            # Log the full error on the server for debugging
+            print(f"Unexpected Error in FingerprintAnalysisView: {str(e)}")
             import traceback
-            print(f"Error in FingerprintAnalysisView: {str(e)}")
-            traceback.print_exc() # This will print the full stack trace to your server console
+            traceback.print_exc() 
             return Response({
-                "message": f"An unexpected error occurred during analysis. Please contact support if the issue persists.",
-                "status": "error"
+                "detail": "An unexpected error occurred during analysis. Please contact support if the issue persists.",
+                "status": "error" # Custom status field
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -146,24 +155,26 @@ class FingerprintViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        mutable_data = request.data.copy()
-        serializer = self.get_serializer(data=mutable_data)
+        serializer = self.get_serializer(data=request.data) # No need to copy request.data for validation
         try:
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        except Exception as e: # Consider more specific exception handling
-            error_detail = str(e)
-            if hasattr(e, 'detail') and isinstance(e.detail, dict): # For DRF ValidationErrors
-                error_detail = e.detail
-            elif hasattr(e, 'detail') and isinstance(e.detail, list) and len(e.detail) > 0:
-                 error_detail = e.detail[0] # Take the first error message
+        except serializers.ValidationError as e:
+            # Log the validation error for debugging on the server
+            print(f"Validation Error in FingerprintViewSet create: {e.detail}")
+            # Return DRF's standard validation error response
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # Catch other potential errors during the process
+            print(f"Unexpected Error in FingerprintViewSet create: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return Response(
-                {"error": error_detail, "status": "error"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "An unexpected error occurred while creating the fingerprint record.", "status": "error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR # Use 500 for truly unexpected server errors
             )
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -233,47 +244,65 @@ def update_profile(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@transaction.atomic # Add atomic transaction for robust user creation
 def register_user(request):
     username = request.data.get('username')
     email = request.data.get('email')
     password = request.data.get('password')
-    role_name_from_request = request.data.get('role', UserRole.ROLE_REGULAR)
+    # Default to Regular role if not provided or invalid
+    role_name_from_request = request.data.get('role', UserRole.ROLE_REGULAR) 
 
-    valid_roles = [UserRole.ROLE_REGULAR, UserRole.ROLE_EXPERT, UserRole.ROLE_ADMIN]
-    if role_name_from_request not in valid_roles:
-        role_to_assign = UserRole.ROLE_REGULAR
-    else:
-        role_to_assign = role_name_from_request
-
+    # Basic validation
     if not username or not password:
-        return Response({'error': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
     if not email:
-        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
-
+        return Response({'detail': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check for existing user/email
     if User.objects.filter(username=username).exists():
         return Response({'username': ['User with this username already exists.']}, status=status.HTTP_400_BAD_REQUEST)
     if User.objects.filter(email=email).exists():
         return Response({'email': ['User with this email already exists.']}, status=status.HTTP_400_BAD_REQUEST)
 
-    user = User.objects.create_user(username=username, email=email, password=password)
-    user.is_active = True 
-    user.save()
+    try:
+        # Create the user. The post_save signal (create_or_update_user_profile)
+        # should fire and create the UserProfile with a default role.
+        user = User.objects.create_user(username=username, email=email, password=password)
+        # user.is_active = True # create_user by default sets is_active=True unless is_staff or is_superuser is set
+        # user.save() # create_user already saves the user
 
-    # UserProfile should be created by the signal here
-    user_profile = UserProfile.objects.get(user=user) # Re-fetch to ensure it's the one from DB
-    role_instance, _ = UserRole.objects.get_or_create(role_name=role_to_assign)
-    user_profile.role = role_instance
-    user_profile.save()
+        # Retrieve the UserProfile. The signal should have created it.
+        # Using user.profile assumes the related_name='profile' is set on UserProfile.user
+        user_profile = user.profile 
+        
+        # Determine the final role to assign.
+        # The signal assigns ROLE_REGULAR. If a different valid role is requested, update it.
+        valid_roles = [UserRole.ROLE_REGULAR, UserRole.ROLE_EXPERT, UserRole.ROLE_ADMIN]
+        final_role_name = role_name_from_request if role_name_from_request in valid_roles else UserRole.ROLE_REGULAR
+        
+        if user_profile.role.role_name != final_role_name:
+            target_role, _ = UserRole.objects.get_or_create(role_name=final_role_name)
+            user_profile.role = target_role
+            user_profile.save() # Save the profile with the potentially updated role
 
-    token, _ = Token.objects.get_or_create(user=user)
+        # Create auth token
+        token, _ = Token.objects.get_or_create(user=user)
 
-    return Response({
-        'id': user.id,
-        'username': user.username,
-        'email': user.email,
-        'role': user_profile.role.role_name,
-        'token': token.key
-    }, status=status.HTTP_201_CREATED)
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': user_profile.role.role_name,
+            'token': token.key
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        # Log the error for server-side debugging
+        print(f"Critical Error during user registration for {username}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'detail': 'An unexpected error occurred during registration. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 class CustomAuthToken(ObtainAuthToken):

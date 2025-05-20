@@ -1,10 +1,10 @@
 # File: docker-compose.yml
 services:
   db:
-    image: postgres:17 # Or postgres:17 if you've decided to upgrade
+    image: postgres:17
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    env_file: # Add this to the db service
+    env_file:
       - ./backend/.env
     ports:
       - "5433:5432"
