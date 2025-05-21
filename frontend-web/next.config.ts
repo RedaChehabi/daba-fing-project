@@ -8,7 +8,7 @@ const nextConfig = {
   // This might require adjustments in how Electron loads assets if runtime path issues occur.
   assetPrefix: isElectronBuild ? '/' : undefined,
   images: {
-    unoptimized: isElectronBuild, // This should be true during this build
+    unoptimized: isElectronBuild, // This is the crucial line
   },
   experimental: {
     turbo: {
