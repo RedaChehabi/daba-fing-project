@@ -49,19 +49,6 @@ export default function FeedbackReviewPage() { // Renamed component
     }
   };
 
-  // --- Add Handler Functions ---
-  const handleReviewFeedbackClick = (review: typeof pendingReviews[0]) => {
-    console.log(`Review Feedback clicked for Analysis ID: ${review.analysisId}`);
-    // TODO: Implement actual logic (e.g., open modal, navigate)
-  };
-
-  const handleViewAnalysisClick = (review: typeof pendingReviews[0]) => {
-    console.log(`View Analysis clicked for Analysis ID: ${review.analysisId}`);
-    // TODO: Implement actual logic (e.g., navigate to analysis detail page)
-  };
-  // --- End Handler Functions ---
-
-
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header Section Updated */}

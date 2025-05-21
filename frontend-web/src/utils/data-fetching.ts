@@ -37,23 +37,6 @@ export function setInCache<T>(key: string, data: T, ttl: number = DEFAULT_TTL): 
 }
 
 /**
- * Clear cache
- */
-export function clearCache(pattern?: string): void {
-  if (!pattern) {
-    cache.clear()
-    return
-  }
-
-  // Clear entries matching pattern
-  for (const key of cache.keys()) {
-    if (key.includes(pattern)) {
-      cache.delete(key)
-    }
-  }
-}
-
-/**
  * Fetch data with caching
  */
 export async function fetchWithCache<T>(
