@@ -4,9 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-// Added Check, X, AlertTriangle, ListFilter, Search, MessageSquareQuote icons
-import { Fingerprint, Eye, Check, X, AlertTriangle, ListFilter, Search, MessageSquareQuote } from "lucide-react" // Added MessageSquareQuote
-import { Input } from "@/components/ui/input"
+import { Fingerprint, Eye, Check, X, AlertTriangle, MessageSquareQuote } from "lucide-react" // Added MessageSquareQuote
 import {
   Table,
   TableBody,
