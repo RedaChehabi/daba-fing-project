@@ -39,21 +39,42 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path = __importStar(require("path"));
 const electron_is_dev_1 = __importDefault(require("electron-is-dev"));
+const electron_2 = require("electron");
+const fs_1 = require("fs");
 let win = null;
+electron_2.ipcMain.handle('save-image', async (event, base64) => {
+    const { canceled, filePath } = await electron_2.dialog.showSaveDialog({
+        title: 'Save Captured Fingerprint',
+        defaultPath: 'fingerprint.jpg',
+        filters: [{ name: 'Images', extensions: ['jpg', 'jpeg'] }],
+    });
+    if (canceled || !filePath)
+        return;
+    const imageBuffer = Buffer.from(base64.split(',')[1], 'base64');
+    await (0, fs_1.writeFile)(filePath, imageBuffer, (err) => {
+        if (err) {
+            console.error('Failed to save file:', err);
+        }
+        else {
+            console.log('File saved successfully at', filePath);
+        }
+    });
+});
 function createWindow() {
-    win = new electron_1.BrowserWindow({
+    const win = new electron_1.BrowserWindow({
         width: 1280,
         height: 800,
         webPreferences: {
-            nodeIntegration: false,
+            preload: path.join(__dirname, 'electron-preload.js'),
             contextIsolation: true,
+            nodeIntegration: false,
         },
     });
     if (electron_is_dev_1.default) {
-        win.loadURL('http://localhost:3004'); // In dev mode, load Next.js dev server
+        win.loadURL('http://localhost:3000'); // CHANGED from 3004 to 3000
     }
     else {
-        win.loadFile(path.join(__dirname, 'out', 'index.html')); // In prod, load static export
+        win.loadFile(path.join(__dirname, 'out', 'index.html'));
     }
     win.on('closed', () => {
         win = null;
