@@ -1,8 +1,11 @@
 /** @type {import('next').NextConfig} */
+
+const isElectronBuild = process.env.BUILD_TARGET === 'electron';
+
 const nextConfig = {
-  //output: 'export', // <-- Remove this line
-   images: { // <-- Remove this block if only needed for Electron
-    unoptimized: true,
+  // output: 'export', // Keep this commented unless specifically building for static export only for all targets
+  images: {
+    unoptimized: isElectronBuild, // Conditionally unoptimize for Electron
   },
   experimental: {
     turbo: {
@@ -11,7 +14,6 @@ const nextConfig = {
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Don't resolve 'fs' module on the client to prevent this error
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -27,7 +29,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8000/api/:path*', // Keep for dev proxy
+        destination: 'http://localhost:8000/api/:path*', 
       },
     ];
   }

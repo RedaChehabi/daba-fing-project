@@ -9,7 +9,7 @@
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true
     },
-    "include": ["electron-main.ts"],
+    "include": ["electron-main.ts", "electron-preload.ts"], // Added electron-preload.ts
     "exclude": ["node_modules", "src"]
   }
   

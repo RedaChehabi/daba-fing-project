@@ -30,17 +30,16 @@ function createWindow() {
     width: 1280,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'electron-preload.js'), // VERY important
+      preload: path.join(__dirname, 'electron-preload.js'), 
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
   
-
   if (isDev) {
-    win.loadURL('http://localhost:3004'); // In dev mode, load Next.js dev server
+    win.loadURL('http://localhost:3000'); // CHANGED from 3004 to 3000
   } else {
-    win.loadFile(path.join(__dirname, 'out', 'index.html')); // In prod, load static export
+    win.loadFile(path.join(__dirname, 'out', 'index.html')); 
   }
 
   win.on('closed', () => {

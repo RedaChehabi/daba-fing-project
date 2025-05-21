@@ -5,11 +5,11 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context" // Correctly imports useAuth
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert" // Added AlertTitle
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { motion } from "framer-motion"
 import { Fingerprint, Loader2, User, Lock, AlertCircle, Eye, EyeOff } from "lucide-react"
 
@@ -19,17 +19,17 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth()
+  const { login } = useAuth() // Correctly destructures login from useAuth
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("") // Clear previous errors
+    setError("") 
     setIsLoading(true)
 
     try {
-      await login(username, password)
-      router.push("/dashboard") // Navigate on successful login
+      await login(username, password) // Uses the login function from AuthContext
+      router.push("/dashboard") 
     } catch (err: any) {
       console.error("Login page error:", err);
       let errorMessage = "An unexpected error occurred. Please try again.";
@@ -39,7 +39,7 @@ export default function LoginPage() {
         } else if (err.message.toLowerCase().includes("unable to log in with provided credentials") ||
                   err.message.toLowerCase().includes("no active account found with the given credentials")) {
           errorMessage = "Invalid username or password. Please check your credentials.";
-        } else if (err.message.length < 150) { // Show backend's message if it's reasonably short
+        } else if (err.message.length < 150) { 
             errorMessage = err.message;
         }
       }

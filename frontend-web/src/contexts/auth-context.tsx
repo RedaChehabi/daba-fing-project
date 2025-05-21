@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { auth as apiAuthUtils } from "@/utils/api"; // Assuming your auth utilities are aliased or directly imported
+import { authService } from '@/services/api' // Assuming your auth utilities are aliased or directly imported
 
 // Use NEXT_PUBLIC_ environment variable for the API base URL
 const API_BASE_URL_CONTEXT = process.env.NEXT_PUBLIC_API_URL;
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("user_data", JSON.stringify(fetchedUser));
       } else {
         console.warn("AuthContext: Failed to fetch user profile, token might be invalid or expired.");
-        apiAuthUtils.logout(); // Use the utility to clear localStorage
+        authService.logout(); // Use the utility to clear localStorage
         setUser(null);
         // Optionally, redirect to login if this happens on a protected route,
         // though layout should handle redirects based on isAuthenticated.
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("AuthContext: Error fetching user profile:", error);
-      apiAuthUtils.logout(); // Clear local auth state on any fetch error
+      authService.logout(); // Clear local auth state on any fetch error
       setUser(null);
     }
   }, [router]); // Removed API_BASE_URL_CONTEXT from deps as it's module-level const
@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     setLoading(true);
     try {
-      const loginResponse = await apiAuthUtils.login(username, password);
+      const loginResponse = await authService.login(username, password);
       // apiAuthUtils.login now stores token and basic user_data in localStorage
       await fetchUserProfile(loginResponse.token); // Fetch full profile using the new token
       // Navigation to "/dashboard" should be handled by the calling page (e.g., LoginPage)
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (username: string, email: string, password: string) => {
     setLoading(true);
     try {
-      const registerResponse = await apiAuthUtils.register(username, email, password);
+      const registerResponse = await authService.register(username, email, password);
       // apiAuthUtils.register now stores token and basic user_data in localStorage
       await fetchUserProfile(registerResponse.token); // Fetch full profile using the new token
       // Navigation to "/dashboard" should be handled by the calling page (e.g., RegisterPage)
@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // --- Functions you asked for ---
   const logout = useCallback(() => {
-    apiAuthUtils.logout(); // This function should clear localStorage (token, user_data)
+    authService.logout(); // This function should clear localStorage (token, user_data)
     setUser(null); // Clear user state in the context
     router.push("/auth/login"); // Navigate to login page
   }, [router]); // Add router to dependency array

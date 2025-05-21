@@ -60,7 +60,7 @@ export const authService = {
     // Store token and basic user data after successful registration
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
-      const basicUserData = { 
+       const basicUserData = { 
         id: response.data.user_id, // Assuming register also returns user_id, or response.data.id
         username: response.data.username, 
         email: response.data.email, 

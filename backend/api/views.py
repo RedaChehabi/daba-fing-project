@@ -3,18 +3,20 @@ import json
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, viewsets # Make sure viewsets is imported if used by FingerprintViewSet
-from rest_framework.permissions import IsAuthenticated, AllowAny # Add AllowAny here
-from rest_framework.authtoken.views import ObtainAuthToken # For CustomAuthToken
-from rest_framework.authtoken.models import Token # For CustomAuthToken and register_user
-from django.contrib.auth.models import User # For register_user, profile
-from rest_framework.decorators import api_view, permission_classes # For register_user, profile
+from rest_framework import status, viewsets, serializers # Make sure serializers is imported if used by CustomAuthToken
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
+from rest_framework.decorators import api_view, permission_classes
 from .models import (
     FingerprintImage, FingerprintAnalysis, ModelVersion, AnalysisHistory,
     UserProfile, UserRole # Ensure all necessary models are imported
 )
-from .serializers import FingerprintImageSerializer # If FingerprintViewSet uses this
-from .models import UserRole, UserProfile, User # Ensure User is imported from django.contrib.auth.models
+# Removed UserProfile, UserRole, User imports here as they are already imported above or from auth.models
+from .serializers import FingerprintImageSerializer
+from django.db import transaction # Import transaction
+
 
 
 # --- Mock Analysis Function (actual model logic deferred) ---
@@ -51,24 +53,27 @@ class FingerprintAnalysisView(APIView):
 
             if not fingerprint_id:
                 return Response({
-                    "message": "Fingerprint ID is required.",
-                    "status": "error"
+                    "detail": "Fingerprint ID is required.", # Changed "message" to "detail" for consistency with DRF
+                    "status": "error" # You can keep this custom status or remove it if frontend adapts to DRF style
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             try:
                 fingerprint_image_instance = FingerprintImage.objects.get(id=fingerprint_id, user=request.user)
             except FingerprintImage.DoesNotExist:
                 return Response({
-                    "message": "Fingerprint not found or you do not have permission to access it.",
+                    "detail": "Fingerprint not found or you do not have permission to access it.",
                     "status": "error"
                 }, status=status.HTTP_404_NOT_FOUND)
 
             if not fingerprint_image_instance.image or not hasattr(fingerprint_image_instance.image, 'path'):
                 return Response({
-                    "message": "Fingerprint image file not found or path is invalid.",
+                    "detail": "Fingerprint image file not found or path is invalid for analysis.",
                     "status": "error"
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Assuming perform_mock_analysis might raise its own specific errors or a generic Exception
+            # If perform_mock_analysis can raise specific, catchable errors (e.g., ModelNotReadyError),
+            # you could catch those here.
             image_path = fingerprint_image_instance.image.path
             analysis_results_data = perform_mock_analysis(image_path)
 
@@ -91,47 +96,51 @@ class FingerprintAnalysisView(APIView):
                 classification=analysis_results_data.get("classification", "N/A"),
                 ridge_count=analysis_results_data.get("ridge_count", 0),
                 confidence_score=analysis_results_data.get("confidence_score", 0.0),
-                analysis_status="completed_mock",
+                analysis_status="completed_mock", # Consider a more descriptive status
                 processing_time=analysis_results_data.get("processing_time", "0s"),
                 is_validated=False,
                 analysis_results=analysis_results_data.get("analysis_details", {})
             )
 
             fingerprint_image_instance.is_processed = True
-            fingerprint_image_instance.preprocessing_status = "analyzed_mock"
+            fingerprint_image_instance.preprocessing_status = "analyzed_mock" # Consider a more descriptive status
             fingerprint_image_instance.save()
 
             AnalysisHistory.objects.create(
                 user=request.user,
                 image=fingerprint_image_instance,
                 analysis=analysis,
-                action_performed="mock_analysis_completed",
+                action_performed="mock_analysis_completed", # Be more specific if it's real analysis
                 platform_used=request.META.get('HTTP_USER_AGENT', 'unknown'),
                 device_info=request.META.get('REMOTE_ADDR', 'unknown')
             )
 
             return Response({
-                "message": "Fingerprint analysis (mock) completed successfully.",
+                "message": "Fingerprint analysis (mock) completed successfully.", # Keep "message" if frontend expects it
                 "status": "success",
                 "id": analysis.id,
                 "fingerprint_id": fingerprint_image_instance.id,
                 "classification": analysis.classification,
                 "ridge_count": analysis.ridge_count,
-                "confidence": analysis.confidence_score * 100, # Present as percentage
+                "confidence": analysis.confidence_score * 100, 
                 "processing_time": analysis.processing_time,
                 "additional_details": analysis.analysis_results
             }, status=status.HTTP_200_OK)
 
-        except FingerprintImage.DoesNotExist:
-            return Response({"message": "Fingerprint not found."}, status=status.HTTP_404_NOT_FOUND)
+        # Specific exceptions that might occur during the process
+        except FingerprintImage.DoesNotExist: # This is already handled above, but kept for clarity if refactored
+            return Response({"detail": "Fingerprint not found."}, status=status.HTTP_404_NOT_FOUND)
+        except KeyError as e: # Example: if request.data is missing an expected key
+            print(f"KeyError in FingerprintAnalysisView: {str(e)}")
+            return Response({"detail": f"Missing expected data: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            # It's good practice to log the full error on the server for debugging
+            # Log the full error on the server for debugging
+            print(f"Unexpected Error in FingerprintAnalysisView: {str(e)}")
             import traceback
-            print(f"Error in FingerprintAnalysisView: {str(e)}")
-            traceback.print_exc() # This will print the full stack trace to your server console
+            traceback.print_exc() 
             return Response({
-                "message": f"An unexpected error occurred during analysis. Please contact support if the issue persists.",
-                "status": "error"
+                "detail": "An unexpected error occurred during analysis. Please contact support if the issue persists.",
+                "status": "error" # Custom status field
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -143,38 +152,29 @@ class FingerprintViewSet(viewsets.ModelViewSet):
         return FingerprintImage.objects.filter(user=self.request.user).order_by('-upload_date')
 
     def perform_create(self, serializer):
-        # The user is automatically associated from the request context
-        # by the serializer if it's a CurrentUserDefault or similar,
-        # or can be passed explicitly here.
-        # If your serializer expects user data directly, this is fine.
-        # If it expects the user object, then pass request.user.
         serializer.save(user=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        # Make a mutable copy of the request data to inject/modify if necessary
-        mutable_data = request.data.copy()
-
-        # If 'user' is not part of the incoming form data (e.g. image and title only)
-        # and your serializer requires it or if you want to ensure it's set,
-        # you can add it here. However, `perform_create` usually handles this.
-        # If serializer's `user` field is read-only, this line isn't strictly needed here.
-        # mutable_data['user'] = request.user.id
-
-        serializer = self.get_serializer(data=mutable_data)
+        serializer = self.get_serializer(data=request.data) # No need to copy request.data for validation
         try:
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except serializers.ValidationError as e:
+            # Log the validation error for debugging on the server
+            print(f"Validation Error in FingerprintViewSet create: {e.detail}")
+            # Return DRF's standard validation error response
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            error_detail = str(e)
-            if hasattr(e, 'detail'): # For DRF ValidationErrors
-                error_detail = e.detail
+            # Catch other potential errors during the process
+            print(f"Unexpected Error in FingerprintViewSet create: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return Response(
-                {"error": error_detail, "status": "error"}, # Added status field for consistency
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "An unexpected error occurred while creating the fingerprint record.", "status": "error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR # Use 500 for truly unexpected server errors
             )
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -182,13 +182,12 @@ def profile(request):
     user = request.user
     try:
         user_profile = user.profile
-        if not user_profile.role: # Fallback if role somehow didn't get set
+        if not user_profile.role: 
             default_role, _ = UserRole.objects.get_or_create(role_name=UserRole.ROLE_REGULAR)
             user_profile.role = default_role
             user_profile.save()
         role_name = user_profile.role.role_name
     except UserProfile.DoesNotExist:
-        # This is a fallback, signals should handle profile creation
         default_role, _ = UserRole.objects.get_or_create(role_name=UserRole.ROLE_REGULAR)
         user_profile = UserProfile.objects.create(user=user, role=default_role)
         role_name = default_role.role_name
@@ -197,12 +196,12 @@ def profile(request):
         'id': user.id,
         'username': user.username,
         'email': user.email,
-        'role': role_name, # Send the stored value
+        'role': role_name,
         'profile': {
             'first_name': user_profile.first_name or user.first_name,
             'last_name': user_profile.last_name or user.last_name,
-            'is_active': user_profile.is_active, # This is UserProfile's is_active
-            'user_is_active': user.is_active, # This is Django User's is_active
+            'is_active': user_profile.is_active,
+            'user_is_active': user.is_active,
             'registration_date': user_profile.registration_date.strftime('%Y-%m-%d') if user_profile.registration_date else None,
         }
     })
@@ -211,9 +210,8 @@ def profile(request):
 @permission_classes([IsAuthenticated])
 def update_profile(request):
     user = request.user
-    user_profile = user.profile # Assumes profile exists due to signal
+    user_profile = user.profile 
 
-    # Update User model fields (username, email)
     new_username = request.data.get('username')
     if new_username and new_username != user.username:
         if User.objects.filter(username=new_username).exclude(pk=user.pk).exists():
@@ -227,11 +225,8 @@ def update_profile(request):
         user.email = new_email
     user.save()
 
-    # Update UserProfile model fields
     user_profile.first_name = request.data.get('first_name', user_profile.first_name)
     user_profile.last_name = request.data.get('last_name', user_profile.last_name)
-    # Add other UserProfile fields here if they are being updated
-    # e.g., user_profile.contact_number = request.data.get('contact_number', user_profile.contact_number)
     user_profile.save()
 
     return Response({
@@ -242,74 +237,94 @@ def update_profile(request):
         'profile': {
             'first_name': user_profile.first_name,
             'last_name': user_profile.last_name,
-            # Add other relevant profile fields
         },
         'message': 'Profile updated successfully.'
     }, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny]) # This decorator now has AllowAny defined
+@permission_classes([AllowAny])
+@transaction.atomic # Add atomic transaction for robust user creation
 def register_user(request):
     username = request.data.get('username')
     email = request.data.get('email')
     password = request.data.get('password')
-    role_name_from_request = request.data.get('role', UserRole.ROLE_REGULAR)
+    # Default to Regular role if not provided or invalid
+    role_name_from_request = request.data.get('role', UserRole.ROLE_REGULAR) 
 
-    valid_roles = [UserRole.ROLE_REGULAR, UserRole.ROLE_EXPERT, UserRole.ROLE_ADMIN]
-    if role_name_from_request not in valid_roles:
-        role_to_assign = UserRole.ROLE_REGULAR
-    else:
-        role_to_assign = role_name_from_request
-
+    # Basic validation
     if not username or not password:
-        return Response({'error': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Username and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
     if not email:
-        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
-
+        return Response({'detail': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check for existing user/email
     if User.objects.filter(username=username).exists():
         return Response({'username': ['User with this username already exists.']}, status=status.HTTP_400_BAD_REQUEST)
     if User.objects.filter(email=email).exists():
         return Response({'email': ['User with this email already exists.']}, status=status.HTTP_400_BAD_REQUEST)
 
-    user = User.objects.create_user(username=username, email=email, password=password)
-    user.is_active = True
-    user.save()
+    try:
+        # Create the user. The post_save signal (create_or_update_user_profile)
+        # should fire and create the UserProfile with a default role.
+        user = User.objects.create_user(username=username, email=email, password=password)
+        # user.is_active = True # create_user by default sets is_active=True unless is_staff or is_superuser is set
+        # user.save() # create_user already saves the user
 
-    user_profile = UserProfile.objects.get(user=user)
-    role_instance, _ = UserRole.objects.get_or_create(role_name=role_to_assign)
-    user_profile.role = role_instance
-    user_profile.save()
+        # Retrieve the UserProfile. The signal should have created it.
+        # Using user.profile assumes the related_name='profile' is set on UserProfile.user
+        user_profile = user.profile 
+        
+        # Determine the final role to assign.
+        # The signal assigns ROLE_REGULAR. If a different valid role is requested, update it.
+        valid_roles = [UserRole.ROLE_REGULAR, UserRole.ROLE_EXPERT, UserRole.ROLE_ADMIN]
+        final_role_name = role_name_from_request if role_name_from_request in valid_roles else UserRole.ROLE_REGULAR
+        
+        if user_profile.role.role_name != final_role_name:
+            target_role, _ = UserRole.objects.get_or_create(role_name=final_role_name)
+            user_profile.role = target_role
+            user_profile.save() # Save the profile with the potentially updated role
 
-    token, _ = Token.objects.get_or_create(user=user)
+        # Create auth token
+        token, _ = Token.objects.get_or_create(user=user)
 
-    return Response({
-        'id': user.id,
-        'username': user.username,
-        'email': user.email,
-        'role': user_profile.role.role_name,
-        'token': token.key
-    }, status=status.HTTP_201_CREATED)
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': user_profile.role.role_name,
+            'token': token.key
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        # Log the error for server-side debugging
+        print(f"Critical Error during user registration for {username}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'detail': 'An unexpected error occurred during registration. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
-# File: backend/api/views.py
-# ...
-# File: backend/api/views.py
 class CustomAuthToken(ObtainAuthToken):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        print(f"--- LOGIN ATTEMPT ---") # Log start of attempt
-        print(f"Request data: {request.data}") # Log incoming data
+        print(f"--- LOGIN ATTEMPT ---") 
+        print(f"Request data: {request.data}") 
 
         serializer = self.serializer_class(data=request.data,
             context={'request': request})
         try:
             serializer.is_valid(raise_exception=True)
-        except serializers.ValidationError as e: # More specific catch for validation errors
+        except serializers.ValidationError as e: 
             print(f"Serializer validation error: {e.detail}")
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+            # Ensure the response for validation errors is consistent with what frontend expects
+            # DRF's default for raise_exception=True might already be good.
+            # Example of more custom error:
+            # error_key = list(e.detail.keys())[0] if isinstance(e.detail, dict) else 'non_field_errors'
+            # error_message = e.detail[error_key][0] if isinstance(e.detail, dict) and e.detail[error_key] else str(e.detail)
+            # return Response({"detail": error_message}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST) # Keep DRF default or customize
         except Exception as e:
             print(f"Unexpected error during login validation: {str(e)}")
             import traceback
@@ -318,11 +333,11 @@ class CustomAuthToken(ObtainAuthToken):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         user = serializer.validated_data['user']
-        print(f"User validated: {user.username}, Active: {user.is_active}") # Check if user is active
+        print(f"User validated: {user.username}, Active: {user.is_active}") 
 
         if not user.is_active:
             print(f"Login failed: User {user.username} is inactive.")
-            return Response({"detail": "User account is inactive."},
+            return Response({"detail": "User account is inactive."}, # Make sure frontend handles this specific detail
                             status=status.HTTP_400_BAD_REQUEST)
 
         token, created = Token.objects.get_or_create(user=user)
@@ -339,7 +354,7 @@ class CustomAuthToken(ObtainAuthToken):
         except UserProfile.DoesNotExist:
             print(f"UserProfile DoesNotExist for {user.username}, creating with default role.")
             default_role, _ = UserRole.objects.get_or_create(role_name=UserRole.ROLE_REGULAR)
-            UserProfile.objects.create(user=user, role=default_role)
+            UserProfile.objects.create(user=user, role=default_role) # Ensure this profile is saved
             role_name_to_send = default_role.role_name
 
         print(f"Login successful for {user.username}, role: {role_name_to_send}")
@@ -351,52 +366,7 @@ class CustomAuthToken(ObtainAuthToken):
             'role': role_name_to_send
         }
         print(f"Response data: {response_data}")
-        return Response(response_data)    
-    permission_classes = [AllowAny] # This is correct
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data,
-            context={'request': request})
-        try:
-            # If validation fails here (e.g., wrong password, user not found, user inactive)
-            # it will raise a serializers.ValidationError.
-            serializer.is_valid(raise_exception=True)
-        except Exception as e: # Catch generic DRF validation error
-            # This is a good place to log what's in request.data
-            print(f"Login failed for data: {request.data}")
-            print(f"Serializer errors: {getattr(serializer, 'errors', 'No serializer errors attribute')}")
-            # The default DRF 400 response for validation errors is usually sufficient,
-            # but you can customize it if needed.
-            # The raise_exception=True already causes DRF to return a 400 with error details.
-            # So this custom return might be redundant if serializer.is_valid fails.
-            # If serializer.is_valid itself throws another type of exception, then this catch is useful.
-            return Response({"detail": "Unable to log in with provided credentials. Check username and password."},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-
-        # This part executes only if serializer.is_valid(raise_exception=True) passes
-        try:
-            user_profile = user.profile # Assumes 'profile' is the related_name
-            if not user_profile.role: # Ensure role exists
-                # This default role creation should ideally not be needed frequently
-                # if signals or user creation logic handles it properly.
-                default_role, _ = UserRole.objects.get_or_create(role_name=UserRole.ROLE_REGULAR)
-                user_profile.role = default_role
-                user_profile.save()
-            role_name_to_send = user_profile.role.role_name
-        except UserProfile.DoesNotExist:
-            # Fallback if profile somehow doesn't exist (signal should prevent this)
-            default_role, _ = UserRole.objects.get_or_create(role_name=UserRole.ROLE_REGULAR)
-            # Create the profile if it's missing.
-            UserProfile.objects.create(user=user, role=default_role)
-            role_name_to_send = default_role.role_name
-        
-        return Response({
-            'token': token.key,
-            'user_id': user.pk,
-            'email': user.email,
-            'username': user.username,
-            'role': role_name_to_send
-        })
+        return Response(response_data)
+#
+# NOTE: The second, more basic CustomAuthToken class that was here has been removed.
+#
