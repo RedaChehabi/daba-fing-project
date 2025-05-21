@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, SaveDialogReturnValue } from 'electron'; // Added SaveDialogReturnValue
 import * as path from 'path';
 import isDev from 'electron-is-dev';
 import { writeFile } from 'fs/promises'; // Using fs.promises for async/await
@@ -12,18 +12,19 @@ ipcMain.handle('save-image', async (_event, base64DataUrl: string) => {
     return { success: false, error: 'Main window not available.' };
   }
   try {
-    const result = await dialog.showSaveDialog(win, { // Pass the parent window
+    // Using a type assertion for the result
+    const result = (await dialog.showSaveDialog(win, { // Pass the parent window
       title: 'Save Captured Fingerprint',
       defaultPath: 'fingerprint.jpg',
       filters: [{ name: 'Images', extensions: ['jpg', 'jpeg'] }],
-    });
+    })) as SaveDialogReturnValue; // Type assertion
 
     if (result.canceled || !result.filePath) {
       console.log('Save dialog was canceled.');
       return { success: false, error: 'Save canceled by user.' };
     }
 
-    const filePath = result.filePath;
+    const filePath: string = result.filePath; // filePath is now definitely a string here
     // Ensure base64DataUrl is a string and correctly formatted
     if (typeof base64DataUrl !== 'string' || !base64DataUrl.startsWith('data:image/')) {
         console.error('Invalid base64 data URL format.');
