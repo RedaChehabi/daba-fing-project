@@ -70,7 +70,6 @@ class UserRole(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.ForeignKey(UserRole, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
-    # ... other UserProfile fields from your existing model
     first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)
     profile_picture = models.ImageField(upload_to='profile_pics', blank=True, null=True)
@@ -199,19 +198,36 @@ class UserNotification(models.Model):
 
 class AnalysisHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='analysis_history')
-    image = models.ForeignKey('FingerprintImage', on_delete=models.CASCADE, related_name='analysis_history')
-    analysis = models.ForeignKey('FingerprintAnalysis', on_delete=models.CASCADE, related_name='history')
+    image = models.ForeignKey(FingerprintImage, on_delete=models.CASCADE, related_name='analysis_history')
+    analysis = models.ForeignKey(FingerprintAnalysis, on_delete=models.CASCADE, related_name='history')
     timestamp = models.DateTimeField(auto_now_add=True)
-    action_performed = models.CharField(max_length=100)
-    platform_used = models.CharField(max_length=255, blank=True, null=True)
-    device_info = models.CharField(max_length=255, blank=True, null=True)
-    
+    action_performed = models.CharField(max_length=100) # E.g., 'analysis_requested', 'feedback_submitted'
+    platform_used = models.CharField(max_length=255, blank=True, null=True) # E.g., 'WebApp', 'MobileApp', 'DesktopApp'
+    device_info = models.CharField(max_length=255, blank=True, null=True) # E.g., 'Chrome on Windows', 'iPhone Safari'
+
     class Meta:
         verbose_name_plural = "Analysis Histories"
         ordering = ['-timestamp']
-    
+
     def __str__(self):
-        return f"{self.user.username}'s analysis of {self.image.title} on {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+        return f"{self.action_performed} by {self.user.username} at {self.timestamp}"
+
+# Remove or comment out the following signal receiver and its function:
+# @receiver(post_save, sender=User)
+# def create_user_profile(sender, instance, created, **kwargs):
+#     if created:
+#         # Get or create default role
+#         default_role, _ = UserRole.objects.get_or_create(
+#             role_name="Regular",
+#             defaults={
+#                 'description': 'Standard user with basic permissions',
+#                 'access_level': 1,
+#                 'can_provide_expert_feedback': False,
+#                 'can_manage_users': False,
+#                 'can_access_analytics': False
+#             }
+#         )
+#         UserProfile.objects.get_or_create(user=instance, defaults={'role': default_role})
 
 class ExportLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='exports')

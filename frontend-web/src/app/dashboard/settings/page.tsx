@@ -32,6 +32,42 @@ export default function SettingsPage() {
   const [allowDataCollection, setAllowDataCollection] = useState(true)
   const [allowThirdPartySharing, setAllowThirdPartySharing] = useState(false)
 
+  // --- Handler Functions ---
+  const handleSaveAppearance = () => {
+    console.log("Saving appearance settings:", { theme, language, compactMode });
+    // Add actual save logic here
+  };
+
+  const handleSaveAnalysisConfig = () => {
+    console.log("Saving analysis config:", { analysisQuality, autoEnhance, saveOriginal });
+    // Add actual save logic here
+  };
+
+  const handleSaveEmailPreferences = () => {
+    console.log("Saving email preferences:", { notifyAnalysisComplete, notifySecurityAlerts, notifyProductUpdates });
+    // Add actual save logic here
+  };
+
+  const handleSaveInAppPreferences = () => {
+    console.log("Saving in-app preferences:", { notifyInAppAlerts, notifyInAppTips });
+    // Add actual save logic here
+  };
+
+  const handleSavePrivacy = () => {
+    console.log("Saving privacy settings:", { allowDataCollection, allowThirdPartySharing });
+    // Add actual save logic here
+  };
+
+  const handleExportData = () => {
+    console.log("Exporting data...");
+    // Add actual export logic here
+  };
+
+  const handleDeleteAccount = () => {
+    console.log("Deleting account...");
+    // Add actual delete account logic here, likely with a confirmation dialog
+  };
+
   return (
     // Removed max-w-4xl and mx-auto
     <div className="p-4 md:p-6">
@@ -221,7 +257,7 @@ export default function SettingsPage() {
               </CardContent>
               <CardFooter>
                 {/* Add onClick handler */}
-                <Button onClick={handleSaveEmailPrefs}>Save Email Preferences</Button>
+                <Button onClick={handleSaveEmailPreferences}>Save Email Preferences</Button>
               </CardFooter>
             </Card>
 
@@ -263,7 +299,7 @@ export default function SettingsPage() {
               </CardContent>
               <CardFooter>
                 {/* Add onClick handler */}
-                <Button onClick={handleSaveInAppPrefs}>Save In-App Preferences</Button>
+                <Button onClick={handleSaveInAppPreferences}>Save In-App Preferences</Button>
               </CardFooter>
             </Card>
           </TabsContent>

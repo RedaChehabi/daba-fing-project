@@ -5,4 +5,4 @@ class ApiConfig(AppConfig):
     name = 'api'
 
     def ready(self):
-        import api.signals # Only import signals here
+        import api.signals # Ensures signals in signals.py are connected

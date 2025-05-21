@@ -136,9 +136,9 @@ export function Sidebar() {
   // Determine which navigation items to show based on user role
   let currentNavItems = userNavItems
   // Check user.role directly (assuming it's 'expert' or 'admin')
-  if (user?.role === "expert") { // Changed from user?.role?.role_name
+  if (user?.role === "Expert") { // Changed from user?.role?.role_name
     currentNavItems = expertNavItems
-  } else if (user?.role === "admin") { // Changed from user?.role?.role_name
+  } else if (user?.role === "Admin") { // Changed from user?.role?.role_name
     currentNavItems = adminNavItems
   }
 

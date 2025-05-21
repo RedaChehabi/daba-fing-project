@@ -12,8 +12,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
+import { File, Camera, Loader2, AlertCircle } from "lucide-react"; // Added File and Camera icons
+import fingerprintService from "@/services/fingerprint-service"; // Added placeholder import for fingerprintService
 
-// ... (interfaces, helper functions like dataURLtoBlob, lazy imports remain the same) ...
 const FileUploadArea = lazy(() => import("@/components/upload/file-upload-area"))
 const CameraUploadArea = lazy(() => import("@/components/upload/camera-upload-area"))
 const ResultsView = lazy(() => import("@/components/upload/results-view"))
@@ -298,8 +299,27 @@ export default function UploadPage() {
     [analysisResult, previewUrl, capturedImage, handleClearSelection]
   );
 
-  const containerVariants = { /* ... */ };
-  const itemVariants = { /* ... */ };
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+  
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+      },
+    },
+  };
 
   return (
     <motion.div className="space-y-6" variants={containerVariants} initial="hidden" animate="visible">
