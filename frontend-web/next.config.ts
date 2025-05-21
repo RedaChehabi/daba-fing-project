@@ -4,8 +4,9 @@ const isElectronBuild = process.env.BUILD_TARGET === 'electron';
 
 const nextConfig = {
   output: 'export',
-  // basePath: isElectronBuild ? './' : undefined, // Add this line
-  assetPrefix: isElectronBuild ? './' : undefined, // Add this line
+  // When building for Electron, set assetPrefix to '/' to satisfy next/font.
+  // This might require adjustments in how Electron loads assets if runtime path issues occur.
+  assetPrefix: isElectronBuild ? '/' : undefined,
   images: {
     unoptimized: isElectronBuild, // This should be true during this build
   },
