@@ -1,8 +1,7 @@
 // File: frontend-web/src/components/dashboard/dashboard-header.tsx
 import React from 'react';
-import { Bell, Search } from 'lucide-react'; // Assuming you use lucide-react
+import { Bell } from 'lucide-react'; // Assuming you use lucide-react
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -14,7 +13,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from '@/contexts/auth-context'; // To get user info
 import Link from 'next/link';
-import { RoleSwitcher } from './role-switcher'; // Optional: if you want to show it in header
 
 interface DashboardHeaderProps {
   title: string;

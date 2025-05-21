@@ -36,10 +36,7 @@ export default function DashboardPage() {
     );
   }
 
-  const userRole = user.role; // Directly use the role from context
-
-  // Debug information - can be removed later
-  // console.log("DashboardPage - User role from context:", userRole);
+  const userRole = user.role; 
 
   let dashboardComponent = null;
   if (userRole === "Admin") {
@@ -66,15 +63,6 @@ export default function DashboardPage() {
   }
 
   return (
-    // The container and h1 are removed as they are now expected to be part of the
-    // AdminDashboard, ExpertDashboard, or UserDashboard components themselves for better encapsulation.
-    // If those components do NOT include their own title like "Admin Dashboard",
-    // you might want to add a generic title here based on role.
-    // For example:
-    // <div className="container mx-auto py-8 px-4">
-    //   <h1 className="text-3xl font-bold mb-6">{userRole} Dashboard</h1>
-    //   {dashboardComponent}
-    // </div>
     <>
         {dashboardComponent}
     </>

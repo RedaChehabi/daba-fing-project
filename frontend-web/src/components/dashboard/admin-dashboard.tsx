@@ -11,11 +11,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
 } from "recharts";
-// Import DashboardHeader component
 import DashboardHeader from './dashboard-header'; // Ensure this import is removed or commented out
-// Added icons: Users, Activity, Server, CheckCircle, BarChart3, FileCog, ArrowRight
 import { Users, Activity, Server, CheckCircle, BarChart3, FileCog, ArrowRight } from 'lucide-react';
 import Link from 'next/link'; // Import Link
 import { Button } from '@/components/ui/button'; // Import Button
