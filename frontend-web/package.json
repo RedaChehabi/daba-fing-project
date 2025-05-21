@@ -51,7 +51,8 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-"@types/electron": "latest",    "@types/node": "^20",
+    "@types/electron": "latest",    
+    "@types/node": "^20",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "electron": "latest",
