@@ -3,9 +3,11 @@
 const isElectronBuild = process.env.BUILD_TARGET === 'electron';
 
 const nextConfig = {
-  //output: 'export', // Keep this commented unless specifically building for static export only for all targets
+  output: 'export',
+  // basePath: isElectronBuild ? './' : undefined, // Add this line
+  assetPrefix: isElectronBuild ? './' : undefined, // Add this line
   images: {
-    unoptimized: true, // Conditionally unoptimize for Electron
+    unoptimized: isElectronBuild, // This should be true during this build
   },
   experimental: {
     turbo: {
@@ -26,10 +28,12 @@ const nextConfig = {
   },
   reactStrictMode: true,
   async rewrites() {
+    // Rewrites are not used by `output: 'export'` and Electron,
+    // but can be kept for web server deployments.
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8000/api/:path*', 
+        destination: 'http://localhost:8000/api/:path*',
       },
     ];
   }
