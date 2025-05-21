@@ -32,43 +32,6 @@ export default function SettingsPage() {
   const [allowDataCollection, setAllowDataCollection] = useState(true)
   const [allowThirdPartySharing, setAllowThirdPartySharing] = useState(false)
 
-  // --- Placeholder Handler Functions ---
-  const handleSaveAppearance = () => {
-    console.log("Saving Appearance Settings:", { theme, language, compactMode })
-    // Add API call logic here
-  }
-
-  const handleSaveAnalysisConfig = () => {
-    console.log("Saving Analysis Configuration:", { analysisQuality, autoEnhance, saveOriginal })
-    // Add API call logic here
-  }
-
-  const handleSaveEmailPrefs = () => {
-    console.log("Saving Email Preferences:", { notifyAnalysisComplete, notifySecurityAlerts, notifyProductUpdates })
-    // Add API call logic here
-  }
-
-  const handleSaveInAppPrefs = () => {
-    console.log("Saving In-App Preferences:", { notifyInAppAlerts, notifyInAppTips })
-    // Add API call logic here
-  }
-
-  const handleSavePrivacy = () => {
-    console.log("Saving Privacy Settings:", { allowDataCollection, allowThirdPartySharing })
-    // Add API call logic here
-  }
-
-  const handleExportData = () => {
-    console.log("Initiating data export...")
-    // Add logic to trigger data export process
-  }
-
-  const handleDeleteAccount = () => {
-    console.warn("Initiating account deletion...")
-    // Add confirmation dialog and API call logic here
-    // Be very careful with this functionality!
-  }
-
   return (
     // Removed max-w-4xl and mx-auto
     <div className="p-4 md:p-6">

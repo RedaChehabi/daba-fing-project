@@ -4,9 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-// Added Check, X, AlertTriangle, ListFilter, Search, MessageSquareQuote icons
-import { Fingerprint, Eye, Check, X, AlertTriangle, ListFilter, Search, MessageSquareQuote } from "lucide-react" // Added MessageSquareQuote
-import { Input } from "@/components/ui/input"
+import { Fingerprint, Eye, Check, X, AlertTriangle, MessageSquareQuote } from "lucide-react" // Added MessageSquareQuote
 import {
   Table,
   TableBody,
@@ -48,19 +46,6 @@ export default function FeedbackReviewPage() { // Renamed component
         return "outline";
     }
   };
-
-  // --- Add Handler Functions ---
-  const handleReviewFeedbackClick = (review: typeof pendingReviews[0]) => {
-    console.log(`Review Feedback clicked for Analysis ID: ${review.analysisId}`);
-    // TODO: Implement actual logic (e.g., open modal, navigate)
-  };
-
-  const handleViewAnalysisClick = (review: typeof pendingReviews[0]) => {
-    console.log(`View Analysis clicked for Analysis ID: ${review.analysisId}`);
-    // TODO: Implement actual logic (e.g., navigate to analysis detail page)
-  };
-  // --- End Handler Functions ---
-
 
   return (
     <div className="p-4 md:p-6 space-y-6">
