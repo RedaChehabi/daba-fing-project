@@ -3,9 +3,9 @@
 const isElectronBuild = process.env.BUILD_TARGET === 'electron';
 
 const nextConfig = {
-  output: 'export', // Keep this commented unless specifically building for static export only for all targets
+  //output: 'export', // Keep this commented unless specifically building for static export only for all targets
   images: {
-    unoptimized: isElectronBuild, // Conditionally unoptimize for Electron
+    unoptimized: true, // Conditionally unoptimize for Electron
   },
   experimental: {
     turbo: {
