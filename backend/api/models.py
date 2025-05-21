@@ -24,9 +24,9 @@ class UserRole(models.Model):
     ROLE_ADMIN = "Admin"
 
     ROLE_CHOICES = [
-        (ROLE_REGULAR, "Regular User"),   # Value stored in DB, Human-readable name
-        (ROLE_EXPERT, "Expert User"),
-        (ROLE_ADMIN, "Administrator"),
+        (ROLE_REGULAR, "Regular"),   # Value stored in DB, Human-readable name
+        (ROLE_EXPERT, "Expert"),
+        (ROLE_ADMIN, "Admin"),
     ]
 
     role_name = models.CharField(
@@ -242,7 +242,7 @@ def create_user_profile(sender, instance, created, **kwargs):
     if created:
         # Get or create default role
         default_role, _ = UserRole.objects.get_or_create(
-            role_name="Regular User",
+            role_name="Regular",
             defaults={
                 'description': 'Standard user with basic permissions',
                 'access_level': 1,
