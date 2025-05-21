@@ -48,12 +48,12 @@ electron_1.ipcMain.handle('save-image', async (_event, base64DataUrl) => {
         return { success: false, error: 'Main window not available.' };
     }
     try {
-        // Explicitly type the result
-        const result = await electron_1.dialog.showSaveDialog(win, {
+        // Using a type assertion for the result
+        const result = (await electron_1.dialog.showSaveDialog(win, {
             title: 'Save Captured Fingerprint',
             defaultPath: 'fingerprint.jpg',
             filters: [{ name: 'Images', extensions: ['jpg', 'jpeg'] }],
-        });
+        })); // Type assertion
         if (result.canceled || !result.filePath) {
             console.log('Save dialog was canceled.');
             return { success: false, error: 'Save canceled by user.' };
