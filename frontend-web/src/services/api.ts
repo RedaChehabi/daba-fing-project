@@ -55,12 +55,13 @@ export const authService = {
     return response.data;
   },
 
-  register: async (userData: any): Promise<LoginResponse> => { // Consider a more specific type for userData
+  register: async (username: string, email: string, password: string): Promise<LoginResponse> => {
+    const userData = { username, email, password };
     const response = await api.post<LoginResponse>('/register/', userData);
     // Store token and basic user data after successful registration
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
-       const basicUserData = { 
+      const basicUserData = { 
         id: response.data.user_id, // Assuming register also returns user_id, or response.data.id
         username: response.data.username, 
         email: response.data.email, 
@@ -126,6 +127,58 @@ export const fingerprintService = {
 
   analyzeFingerprint: async (fingerprintId: number) => {
     const response = await api.post('/fingerprint/analyze/', { fingerprint_id: fingerprintId });
+    return response.data;
+  },
+};
+
+// Add these functions to the existing api.ts file
+
+// Expert Application interfaces
+export interface ExpertApplication {
+  id: number;
+  status: 'pending' | 'approved' | 'rejected';
+  application_date: string;
+  motivation: string;
+  experience: string;
+  qualifications?: string;
+  review_date?: string;
+  review_notes?: string;
+}
+
+export interface ExpertApplicationSubmission {
+  motivation: string;
+  experience: string;
+  qualifications?: string;
+}
+
+export interface ExpertApplicationReview {
+  action: 'approve' | 'reject';
+  review_notes?: string;
+}
+
+// Expert Application API functions
+export const expertApplicationService = {
+  // Submit expert application
+  submit: async (applicationData: ExpertApplicationSubmission): Promise<any> => {
+    const response = await api.post('/expert-application/submit/', applicationData);
+    return response.data;
+  },
+
+  // Get user's expert application status
+  getStatus: async (): Promise<ExpertApplication> => {
+    const response = await api.get('/expert-application/status/');
+    return response.data;
+  },
+
+  // Get all expert applications (admin only)
+  getAll: async (): Promise<{ applications: ExpertApplication[]; total_count: number }> => {
+    const response = await api.get('/expert-applications/');
+    return response.data;
+  },
+
+  // Review expert application (admin only)
+  review: async (applicationId: number, reviewData: ExpertApplicationReview): Promise<any> => {
+    const response = await api.post(`/expert-application/${applicationId}/review/`, reviewData);
     return response.data;
   },
 };

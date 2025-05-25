@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, permission_classes
 from .models import (
     FingerprintImage, FingerprintAnalysis, ModelVersion, AnalysisHistory,
-    UserProfile, UserRole # Ensure all necessary models are imported
+    UserProfile, UserRole, ExpertApplication  # Add ExpertApplication
 )
 # Removed UserProfile, UserRole, User imports here as they are already imported above or from auth.models
 from .serializers import FingerprintImageSerializer
@@ -370,3 +370,158 @@ class CustomAuthToken(ObtainAuthToken):
 #
 # NOTE: The second, more basic CustomAuthToken class that was here has been removed.
 #
+
+# Add these views to the existing views.py file
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def submit_expert_application(request):
+    """Submit an expert application"""
+    user = request.user
+    
+    # Check if user already has a pending application
+    existing_application = ExpertApplication.objects.filter(
+        user=user, status='pending'
+    ).first()
+    
+    if existing_application:
+        return Response({
+            'detail': 'You already have a pending expert application.',
+            'status': 'error'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check if user is already an expert
+    if hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_EXPERT:
+        return Response({
+            'detail': 'You are already an expert.',
+            'status': 'error'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    motivation = request.data.get('motivation', '').strip()
+    experience = request.data.get('experience', '').strip()
+    qualifications = request.data.get('qualifications', '').strip()
+    
+    if not motivation or not experience:
+        return Response({
+            'detail': 'Motivation and experience are required fields.',
+            'status': 'error'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    application = ExpertApplication.objects.create(
+        user=user,
+        motivation=motivation,
+        experience=experience,
+        qualifications=qualifications
+    )
+    
+    return Response({
+        'detail': 'Expert application submitted successfully.',
+        'status': 'success',
+        'application_id': application.id
+    }, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_expert_application(request):
+    """Get current user's expert application status"""
+    user = request.user
+    
+    try:
+        application = ExpertApplication.objects.filter(user=user).latest('application_date')
+        return Response({
+            'id': application.id,
+            'status': application.status,
+            'application_date': application.application_date.strftime('%Y-%m-%d %H:%M'),
+            'motivation': application.motivation,
+            'experience': application.experience,
+            'qualifications': application.qualifications,
+            'review_date': application.review_date.strftime('%Y-%m-%d %H:%M') if application.review_date else None,
+            'review_notes': application.review_notes
+        })
+    except ExpertApplication.DoesNotExist:
+        return Response({
+            'detail': 'No expert application found.',
+            'status': 'not_found'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_expert_applications(request):
+    """Get all expert applications (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    applications = ExpertApplication.objects.all()
+    
+    applications_data = []
+    for app in applications:
+        applications_data.append({
+            'id': app.id,
+            'user': {
+                'id': app.user.id,
+                'username': app.user.username,
+                'email': app.user.email,
+                'first_name': app.user.first_name,
+                'last_name': app.user.last_name
+            },
+            'status': app.status,
+            'application_date': app.application_date.strftime('%Y-%m-%d %H:%M'),
+            'motivation': app.motivation,
+            'experience': app.experience,
+            'qualifications': app.qualifications,
+            'reviewed_by': app.reviewed_by.username if app.reviewed_by else None,
+            'review_date': app.review_date.strftime('%Y-%m-%d %H:%M') if app.review_date else None,
+            'review_notes': app.review_notes
+        })
+    
+    return Response({
+        'applications': applications_data,
+        'total_count': len(applications_data)
+    })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def review_expert_application(request, application_id):
+    """Review an expert application (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        application = ExpertApplication.objects.get(id=application_id)
+    except ExpertApplication.DoesNotExist:
+        return Response({
+            'detail': 'Expert application not found.',
+            'status': 'error'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    action = request.data.get('action')  # 'approve' or 'reject'
+    review_notes = request.data.get('review_notes', '').strip()
+    
+    if action not in ['approve', 'reject']:
+        return Response({
+            'detail': 'Invalid action. Must be "approve" or "reject".',
+            'status': 'error'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    application.status = 'approved' if action == 'approve' else 'rejected'
+    application.reviewed_by = user
+    application.review_date = timezone.now()
+    application.review_notes = review_notes
+    application.save()
+    
+    return Response({
+        'detail': f'Expert application {action}d successfully.',
+        'status': 'success'
+    })

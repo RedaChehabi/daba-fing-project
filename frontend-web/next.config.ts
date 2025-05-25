@@ -3,10 +3,8 @@
 
 const nextConfig = {
   output: 'export',
-  // When building for Electron, set assetPrefix to '/' to satisfy next/font.
-  // This might require adjustments in how Electron loads assets if runtime path issues occur.
   images: {
-    unoptimized: true, // This is the crucial line
+    unoptimized: true,
   },
   experimental: {
     turbo: {
@@ -14,6 +12,9 @@ const nextConfig = {
     },
   },
   webpack: (config, { isServer }) => {
+    // Disable webpack caching for Electron builds
+    config.cache = false;
+    
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -27,8 +28,6 @@ const nextConfig = {
   },
   reactStrictMode: true,
   async rewrites() {
-    // Rewrites are not used by `output: 'export'` and Electron,
-    // but can be kept for web server deployments.
     return [
       {
         source: '/api/:path*',

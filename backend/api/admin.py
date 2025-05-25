@@ -3,7 +3,7 @@ from .models import (
     UserRole, UserProfile, ImageSource, FingerprintImage, 
     ModelVersion, FingerprintAnalysis, UserFeedback,
     UserSession, UserNotification, AnalysisHistory,
-    ExportLog, MergedFingerprint
+    ExportLog, MergedFingerprint, ExpertApplication  # Add ExpertApplication
 )
 
 @admin.register(UserRole)
@@ -84,3 +84,30 @@ class MergedFingerprintAdmin(admin.ModelAdmin):
     list_filter = ('is_processed', 'merge_date')
     search_fields = ('user__username',)
     date_hierarchy = 'merge_date'
+
+# Add this import and admin registration
+from .models import ExpertApplication
+
+@admin.register(ExpertApplication)
+class ExpertApplicationAdmin(admin.ModelAdmin):
+    list_display = ('user', 'application_date', 'status', 'reviewed_by', 'review_date')
+    list_filter = ('status', 'application_date', 'review_date')
+    search_fields = ('user__username', 'user__email')
+    readonly_fields = ('application_date',)
+    
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != 'pending':
+            return self.readonly_fields + ('user', 'motivation', 'experience', 'qualifications')
+        return self.readonly_fields
+    
+    fieldsets = (
+        ('Application Info', {
+            'fields': ('user', 'status', 'application_date')
+        }),
+        ('Application Details', {
+            'fields': ('motivation', 'experience', 'qualifications', 'portfolio_url')
+        }),
+        ('Review', {
+            'fields': ('reviewed_by', 'review_date', 'review_notes')
+        }),
+    )

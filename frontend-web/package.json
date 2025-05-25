@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "build:web": "next build",
-    "build:electron_static": "BUILD_TARGET=electron next build",
+    "build:electron_static": "rm -rf .next && BUILD_TARGET=electron next build",
     "electron-build-ts": "tsc -p tsconfig.electron.json",
-    "electron-dev": "npm run dev & wait-on http://localhost:3000 && npm run electron-build-ts && electron ./electron-dist/electron-main.js",
-    "electron-build": "npm run build:electron_static && npm run electron-build-ts && NODE_ENV=production electron ./electron-dist/electron-main.js",    "dev": "next dev -p 3000",
+    "electron-dev": "rm -rf .next && npm run dev & wait-on http://localhost:3000 && npm run electron-build-ts && electron ./electron-dist/electron-main.js",
+    "electron-build": "npm run build:electron_static && npm run electron-build-ts && NODE_ENV=production electron ./electron-dist/electron-main.js",
+    "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
     "export": "next build"

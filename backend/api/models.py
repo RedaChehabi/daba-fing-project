@@ -273,3 +273,48 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'profile'):
         instance.profile.save()
+
+# Add this after the existing models
+
+class ExpertApplication(models.Model):
+    APPLICATION_STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='expert_applications')
+    application_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=APPLICATION_STATUS_CHOICES, default='pending')
+    motivation = models.TextField(help_text="Why do you want to become an expert?")
+    experience = models.TextField(help_text="Describe your relevant experience")
+    qualifications = models.TextField(blank=True, null=True, help_text="Any relevant qualifications or certifications")
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_applications')
+    review_date = models.DateTimeField(null=True, blank=True)
+    review_notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-application_date']
+        unique_together = ['user', 'status']  # Prevent multiple pending applications
+    
+    def __str__(self):
+        return f"Expert application by {self.user.username} - {self.status}"
+    
+    def save(self, *args, **kwargs):
+        # If application is approved, update user role
+        if self.status == 'approved' and self.pk:
+            old_instance = ExpertApplication.objects.get(pk=self.pk)
+            if old_instance.status != 'approved':
+                expert_role, _ = UserRole.objects.get_or_create(
+                    role_name=UserRole.ROLE_EXPERT,
+                    defaults={
+                        'description': 'Expert user with advanced permissions',
+                        'access_level': 2,
+                        'can_provide_expert_feedback': True,
+                        'can_manage_users': False,
+                        'can_access_analytics': False
+                    }
+                )
+                self.user.profile.role = expert_role
+                self.user.profile.save()
+        super().save(*args, **kwargs)
