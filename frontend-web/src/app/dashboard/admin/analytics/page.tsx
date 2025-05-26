@@ -309,11 +309,6 @@ export default function AnalyticsPage() {
                   <Skeleton className="h-[300px] w-full" />
                 ) : (
                   <ChartContainer
-                    config={{
-                      activeUsers: { label: "Active Users", color: "hsl(var(--chart-1))" },
-                      newUsers: { label: "New Users", color: "hsl(var(--chart-2))" },
-                      returningUsers: { label: "Returning Users", color: "hsl(var(--chart-3))" },
-                    }}
                     className="h-[300px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
@@ -355,10 +350,6 @@ export default function AnalyticsPage() {
                   <Skeleton className="h-[300px] w-full" />
                 ) : (
                   <ChartContainer
-                    config={{
-                      newUsers: { label: "New Users", color: "hsl(var(--chart-2))" },
-                      returningUsers: { label: "Returning Users", color: "hsl(var(--chart-3))" },
-                    }}
                     className="h-[300px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
@@ -391,11 +382,6 @@ export default function AnalyticsPage() {
                   <Skeleton className="h-[300px] w-full" />
                 ) : (
                   <ChartContainer
-                    config={{
-                      uploaded: { label: "Uploaded", color: "hsl(var(--chart-1))" },
-                      analyzed: { label: "Analyzed", color: "hsl(var(--chart-2))" },
-                      pending: { label: "Pending", color: "hsl(var(--chart-3))" },
-                    }}
                     className="h-[300px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
@@ -424,10 +410,6 @@ export default function AnalyticsPage() {
                   <Skeleton className="h-[300px] w-full" />
                 ) : (
                   <ChartContainer
-                    config={{
-                      analyzed: { label: "Successfully Analyzed", color: "hsl(var(--chart-2))" },
-                      failed: { label: "Failed", color: "hsl(var(--chart-4))" },
-                    }}
                     className="h-[300px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
@@ -459,12 +441,6 @@ export default function AnalyticsPage() {
                 <Skeleton className="h-[400px] w-full" />
               ) : (
                 <ChartContainer
-                  config={{
-                    cpuUsage: { label: "CPU Usage", color: "hsl(var(--chart-1))" },
-                    memoryUsage: { label: "Memory Usage", color: "hsl(var(--chart-2))" },
-                    diskUsage: { label: "Disk Usage", color: "hsl(var(--chart-3))" },
-                    responseTime: { label: "Response Time", color: "hsl(var(--chart-4))" },
-                  }}
                   className="h-[400px]"
                 >
                   <ResponsiveContainer width="100%" height="100%">
@@ -497,10 +473,6 @@ export default function AnalyticsPage() {
                   <Skeleton className="h-[300px] w-full" />
                 ) : (
                   <ChartContainer
-                    config={{
-                      casesCompleted: { label: "Cases Completed", color: "hsl(var(--chart-1))" },
-                      casesAssigned: { label: "Cases Assigned", color: "hsl(var(--chart-2))" },
-                    }}
                     className="h-[300px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
@@ -568,9 +540,6 @@ export default function AnalyticsPage() {
                   <Skeleton className="h-[300px] w-full" />
                 ) : (
                   <ChartContainer
-                    config={{
-                      value: { label: "Percentage", color: "hsl(var(--chart-1))" },
-                    }}
                     className="h-[300px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">

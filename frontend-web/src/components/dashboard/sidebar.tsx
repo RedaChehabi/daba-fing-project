@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useTheme } from "next-themes" // Import useTheme
 // Added ChevronsLeft, ChevronsRight
-import { BarChart, ChevronsLeft, ChevronsRight, FileText, Fingerprint, History, Home, LogOut, Moon, Search, Settings, Sun, Upload, User, Users } from "lucide-react"
+import { BarChart, ChevronsLeft, ChevronsRight, FileText, Fingerprint, History, Home, LogOut, Moon, Search, Settings, Sun, Upload, User, Users, UserCheck } from "lucide-react"
 import { useEffect, useState } from "react" // Import useEffect and useState for theme toggle
 
 const userNavItems = [
@@ -86,6 +86,11 @@ const adminNavItems = [
     title: "Users",
     href: "/dashboard/admin/users",
     icon: Users,
+  },
+  {
+    title: "Expert Applications",
+    href: "/dashboard/admin/expert-applications",
+    icon: UserCheck,
   },
   {
     title: "Analytics",

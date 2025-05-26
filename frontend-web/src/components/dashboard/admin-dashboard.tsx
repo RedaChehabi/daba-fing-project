@@ -11,9 +11,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  PieChart,
-  Pie,
-  Cell,
   LineChart,
   Line,
 } from "recharts";
@@ -29,13 +26,15 @@ import {
   AlertTriangle,
   TrendingUp,
   Clock,
-  Shield
+  Shield,
+  UserCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { expertApplicationService } from '@/services/api';
 
 // TypeScript interfaces
 interface AdminStats {
@@ -127,9 +126,18 @@ const AdminDashboard = () => {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000));
         
+        // Get expert applications count
+        let pendingCount = 0;
+        try {
+          const response = await expertApplicationService.getAll();
+          pendingCount = response.applications.filter((app) => app.status === 'pending').length;
+        } catch (error) {
+          console.error('Failed to fetch expert applications:', error);
+        }
+        
         setStats({
           totalUsers: 150,
-          pendingApprovals: 5,
+          pendingApprovals: pendingCount,
           recentAnalyses: 25,
           systemHealth: 'Operational',
           activeExperts: 18,
@@ -317,12 +325,6 @@ const AdminDashboard = () => {
               <Skeleton className="h-[300px] w-full" />
             ) : (
               <ChartContainer
-                config={{
-                  count: {
-                    label: "Users",
-                    color: "hsl(var(--chart-1))",
-                  },
-                }}
                 className="h-[300px]"
               >
                 <ResponsiveContainer width="100%" height="100%">
@@ -379,6 +381,14 @@ const AdminDashboard = () => {
                 <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
               </Button>
             </Link>
+            <Link href="/dashboard/admin/expert-applications" passHref>
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-muted">
+                <UserCheck className="h-4 w-4 text-muted-foreground" />
+                <span>Expert Applications</span>
+                <Badge className="ml-2" variant="secondary">{stats?.pendingApprovals || 0}</Badge>
+                <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground" />
+              </Button>
+            </Link>
             <Link href="/dashboard/admin/analytics" passHref>
               <Button variant="outline" className="w-full justify-start gap-3 hover:bg-muted">
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -417,12 +427,6 @@ const AdminDashboard = () => {
               <Skeleton className="h-[250px] w-full" />
             ) : (
               <ChartContainer
-                config={{
-                  value: {
-                    label: "Performance %",
-                    color: "hsl(var(--chart-2))",
-                  },
-                }}
                 className="h-[250px]"
               >
                 <ResponsiveContainer width="100%" height="100%">

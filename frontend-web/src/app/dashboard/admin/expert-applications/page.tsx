@@ -30,26 +30,20 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
-import { expertApplicationService } from '@/services/api'
+import { expertApplicationService, type ExpertApplication } from '@/services/api'
 
 // Types
-interface ExpertApplication {
+interface ApplicationUser {
   id: number
-  user: {
-    id: number
-    username: string
-    email: string
-    first_name: string
-    last_name: string
-  }
-  status: 'pending' | 'approved' | 'rejected'
-  application_date: string
-  motivation: string
-  experience: string
-  qualifications?: string
+  username: string
+  email: string
+  first_name: string
+  last_name: string
+}
+
+interface ExtendedExpertApplication extends ExpertApplication {
+  user?: ApplicationUser
   reviewed_by?: string
-  review_date?: string
-  review_notes?: string
 }
 
 interface ApplicationStats {
@@ -69,11 +63,11 @@ export default function ExpertApplicationsPage() {
   // State Management
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [applications, setApplications] = useState<ExpertApplication[]>([])
+  const [applications, setApplications] = useState<ExtendedExpertApplication[]>([])
   const [stats, setStats] = useState<ApplicationStats | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [selectedApplication, setSelectedApplication] = useState<ExpertApplication | null>(null)
+  const [selectedApplication, setSelectedApplication] = useState<ExtendedExpertApplication | null>(null)
   const [showReviewDialog, setShowReviewDialog] = useState(false)
   const [reviewData, setReviewData] = useState<ReviewData>({ action: 'approve', review_notes: '' })
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
@@ -94,22 +88,22 @@ export default function ExpertApplicationsPage() {
   const fetchApplications = async () => {
     try {
       setError(null)
-      const response = await expertApplicationService.getApplications()
+      const response = await expertApplicationService.getAll()
       setApplications(response.applications || [])
       
       // Calculate stats
       const apps = response.applications || []
       const now = new Date()
-      const thisMonth = apps.filter(app => {
+      const thisMonth = apps.filter((app) => {
         const appDate = new Date(app.application_date)
         return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear()
       })
       
       setStats({
         total: apps.length,
-        pending: apps.filter(app => app.status === 'pending').length,
-        approved: apps.filter(app => app.status === 'approved').length,
-        rejected: apps.filter(app => app.status === 'rejected').length,
+        pending: apps.filter((app) => app.status === 'pending').length,
+        approved: apps.filter((app) => app.status === 'approved').length,
+        rejected: apps.filter((app) => app.status === 'rejected').length,
         this_month: thisMonth.length
       })
     } catch (error: any) {
@@ -136,10 +130,14 @@ export default function ExpertApplicationsPage() {
   // Filter applications
   const filteredApplications = applications.filter(app => {
     const matchesSearch = 
-      app.user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.user.last_name.toLowerCase().includes(searchTerm.toLowerCase())
+      !searchTerm || // If no search term, include all
+      app.user?.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.user?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.user?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.motivation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.experience?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      false
     
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter
     
@@ -165,7 +163,7 @@ export default function ExpertApplicationsPage() {
   }
 
   // Open review dialog
-  const openReviewDialog = (application: ExpertApplication, action: 'approve' | 'reject') => {
+  const openReviewDialog = (application: ExtendedExpertApplication, action: 'approve' | 'reject') => {
     setSelectedApplication(application)
     setReviewData({ action, review_notes: '' })
     setShowReviewDialog(true)
@@ -421,18 +419,18 @@ export default function ExpertApplicationsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-lg font-semibold text-gray-900">
-                              {application.user.first_name} {application.user.last_name}
+                              {application.user?.first_name || 'Unknown'} {application.user?.last_name || 'User'}
                             </h3>
                             <StatusBadge status={application.status} />
                           </div>
                           <div className="space-y-1 text-sm text-gray-600">
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4" />
-                              <span>@{application.user.username}</span>
+                              <span>@{application.user?.username || 'N/A'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Mail className="h-4 w-4" />
-                              <span>{application.user.email}</span>
+                              <span>{application.user?.email || 'No email provided'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4" />
@@ -525,18 +523,18 @@ export default function ExpertApplicationsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {application.user.first_name} {application.user.last_name}
+                            {application.user?.first_name || 'Unknown'} {application.user?.last_name || 'User'}
                           </h3>
                           <StatusBadge status={application.status} />
                         </div>
                         <div className="space-y-1 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4" />
-                            <span>@{application.user.username}</span>
+                            <span>@{application.user?.username || 'N/A'}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4" />
-                            <span>{application.user.email}</span>
+                            <span>{application.user?.email || 'No email provided'}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
@@ -601,7 +599,7 @@ export default function ExpertApplicationsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {application.user.first_name} {application.user.last_name}
+                            {application.user?.first_name || 'Unknown'} {application.user?.last_name || 'User'}
                           </h3>
                           <StatusBadge status={application.status} />
                           <Badge className="bg-blue-100 text-blue-800 border-blue-200">
@@ -612,11 +610,11 @@ export default function ExpertApplicationsPage() {
                         <div className="space-y-1 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4" />
-                            <span>@{application.user.username}</span>
+                            <span>@{application.user?.username || 'N/A'}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4" />
-                            <span>{application.user.email}</span>
+                            <span>{application.user?.email || 'No email provided'}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
@@ -659,18 +657,18 @@ export default function ExpertApplicationsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {application.user.first_name} {application.user.last_name}
+                            {application.user?.first_name || 'Unknown'} {application.user?.last_name || 'User'}
                           </h3>
                           <StatusBadge status={application.status} />
                         </div>
                         <div className="space-y-1 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4" />
-                            <span>@{application.user.username}</span>
+                            <span>@{application.user?.username || 'N/A'}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4" />
-                            <span>{application.user.email}</span>
+                            <span>{application.user?.email || 'No email provided'}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
@@ -711,7 +709,7 @@ export default function ExpertApplicationsPage() {
             <DialogDescription>
               {selectedApplication && (
                 <span>
-                  Review application from {selectedApplication.user.first_name} {selectedApplication.user.last_name}
+                  Review application from {selectedApplication.user?.first_name} {selectedApplication.user?.last_name}
                 </span>
               )}
             </DialogDescription>
@@ -771,7 +769,7 @@ export default function ExpertApplicationsPage() {
             <DialogDescription>
               {selectedApplication && (
                 <span>
-                  Expert application from {selectedApplication.user.first_name} {selectedApplication.user.last_name}
+                  Expert application from {selectedApplication.user?.first_name} {selectedApplication.user?.last_name}
                 </span>
               )}
             </DialogDescription>
@@ -782,15 +780,15 @@ export default function ExpertApplicationsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-500">Applicant</label>
-                  <p className="text-sm">{selectedApplication.user.first_name} {selectedApplication.user.last_name}</p>
+                  <p className="text-sm">{selectedApplication.user?.first_name} {selectedApplication.user?.last_name}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Username</label>
-                  <p className="text-sm">@{selectedApplication.user.username}</p>
+                  <p className="text-sm">@{selectedApplication.user?.username}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Email</label>
-                  <p className="text-sm">{selectedApplication.user.email}</p>
+                  <p className="text-sm">{selectedApplication.user?.email}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Status</label>

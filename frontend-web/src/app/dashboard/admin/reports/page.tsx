@@ -60,7 +60,7 @@ export default function ReportsPage() {
           <p className="text-muted-foreground">Generate and analyze system reports and statistics</p>
         </div>
         <div className="flex items-center gap-2">
-          <DateRangePicker value={dateRange} onValueChange={setDateRange} />
+          <DateRangePicker />
           <Button onClick={handleExport} className="gap-1">
             <Download className="h-4 w-4" />
             Export
@@ -96,16 +96,6 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent className="px-2">
               <ChartContainer
-                config={{
-                  uploads: {
-                    label: "Uploads",
-                    color: "hsl(var(--chart-1))",
-                  },
-                  verifications: {
-                    label: "Verifications",
-                    color: "hsl(var(--chart-2))",
-                  },
-                }}
                 className="h-[300px]"
               >
                 <ResponsiveContainer width="100%" height="100%">
@@ -175,16 +165,6 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent className="px-2">
               <ChartContainer
-                config={{
-                  apiLatency: {
-                    label: "API Latency (ms)",
-                    color: "hsl(var(--chart-3))",
-                  },
-                  processingTime: {
-                    label: "Processing Time (ms)",
-                    color: "hsl(var(--chart-4))",
-                  },
-                }}
                 className="h-[300px]"
               >
                 <ResponsiveContainer width="100%" height="100%">

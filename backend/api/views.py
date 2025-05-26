@@ -521,6 +521,23 @@ def review_expert_application(request, application_id):
     application.review_notes = review_notes
     application.save()
     
+    # If approved, update user role to Expert
+    if action == 'approve':
+        expert_role, _ = UserRole.objects.get_or_create(
+            role_name=UserRole.ROLE_EXPERT,
+            defaults={
+                'description': 'Expert user with advanced permissions',
+                'access_level': 2,
+                'can_provide_expert_feedback': True,
+                'can_manage_users': False,
+                'can_access_analytics': False
+            }
+        )
+        # Update the user's profile role
+        if hasattr(application.user, 'profile'):
+            application.user.profile.role = expert_role
+            application.user.profile.save()
+    
     return Response({
         'detail': f'Expert application {action}d successfully.',
         'status': 'success'

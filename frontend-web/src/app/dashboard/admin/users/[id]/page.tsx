@@ -20,8 +20,13 @@ const userData = {
   avatarUrl: "",
 }
 
-export default function UserDetailPage({ params }: { params: { id: string } }) {
-  // In a real app, you would fetch user data based on params.id
+interface PageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function UserDetailPage({ params }: PageProps) {
+  const { id } = await params
+  // In a real app, you would fetch user data based on id
   const user = userData
 
   return (

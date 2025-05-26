@@ -21,8 +21,13 @@ const scanData = {
   notes: "Clear impression with well-defined ridges.",
 }
 
-export default function ScanDetailPage({ params }: { params: { id: string } }) {
-  // In a real app, you would fetch scan data based on params.id
+interface PageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function ScanDetailPage({ params }: PageProps) {
+  const { id } = await params
+  // In a real app, you would fetch scan data based on id
   const scan = scanData
 
   return (

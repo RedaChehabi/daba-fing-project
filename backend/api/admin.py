@@ -105,7 +105,7 @@ class ExpertApplicationAdmin(admin.ModelAdmin):
             'fields': ('user', 'status', 'application_date')
         }),
         ('Application Details', {
-            'fields': ('motivation', 'experience', 'qualifications', 'portfolio_url')
+            'fields': ('motivation', 'experience', 'qualifications')
         }),
         ('Review', {
             'fields': ('reviewed_by', 'review_date', 'review_notes')

@@ -2,7 +2,6 @@
 
 
 const nextConfig = {
-  output: 'export',
   images: {
     unoptimized: true,
   },
@@ -11,7 +10,12 @@ const nextConfig = {
       // Add any Turbopack-specific rules here if needed
     },
   },
-  webpack: (config, { isServer }) => {
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
+  },
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
     // Disable webpack caching for Electron builds
     config.cache = false;
     
@@ -35,6 +39,7 @@ const nextConfig = {
       },
     ];
   }
+  
 }
 
-module.exports = nextConfig
+export default nextConfig

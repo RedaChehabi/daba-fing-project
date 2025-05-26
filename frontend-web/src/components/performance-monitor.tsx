@@ -74,17 +74,19 @@ export function PerformanceMonitor({ visible = false }: { visible?: boolean }) {
     // Monitor long tasks
     longTaskObserver = monitorLongTasks()
     if (longTaskObserver) {
+      let longTaskCount = 0;
       longTaskObserver.observe({ entryTypes: ["longtask"] })
 
-      // Update long task count
-      const originalCallback = longTaskObserver.callback
-      longTaskObserver.callback = (list, observer) => {
-        if (originalCallback) originalCallback.call(longTaskObserver, list, observer)
+      // Create a new observer with our callback
+      longTaskObserver.disconnect();
+      longTaskObserver = new PerformanceObserver((list) => {
+        longTaskCount += list.getEntries().length;
         setMetrics((prev) => ({
           ...prev,
-          longTasks: prev.longTasks + list.getEntries().length,
+          longTasks: longTaskCount,
         }))
-      }
+      });
+      longTaskObserver.observe({ entryTypes: ["longtask"] });
     }
 
     // Monitor network requests
@@ -92,7 +94,7 @@ export function PerformanceMonitor({ visible = false }: { visible?: boolean }) {
       resourceObserver = new PerformanceObserver((list) => {
         const entries = list
           .getEntries()
-          .filter((entry) => entry.initiatorType === "fetch" || entry.initiatorType === "xmlhttprequest")
+          .filter((entry: any) => entry.initiatorType === "fetch" || entry.initiatorType === "xmlhttprequest")
 
         networkRequestCount += entries.length
         setMetrics((prev) => ({

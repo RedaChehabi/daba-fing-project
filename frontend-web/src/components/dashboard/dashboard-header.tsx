@@ -64,7 +64,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, description })
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={user.profile?.profile_picture_url || undefined} alt={user.username} />
+                  <AvatarImage src={undefined} alt={user.username} />
                   <AvatarFallback>{getInitials(user.username)}</AvatarFallback>
                 </Avatar>
               </Button>

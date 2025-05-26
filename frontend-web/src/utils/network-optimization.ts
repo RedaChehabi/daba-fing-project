@@ -180,7 +180,7 @@ export async function compressData(data: string): Promise<Uint8Array> {
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      chunks.push(value)
+      chunks.push(value as Uint8Array)
     }
 
     // Combine chunks

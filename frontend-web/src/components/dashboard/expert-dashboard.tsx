@@ -157,11 +157,14 @@ const ExpertDashboard: React.FC = () => {
     fetchExpertData();
   }, []);
 
-  const getPriorityBadgeVariant = (priority: string): "destructive" | "warning" | "secondary" => {
+  const getPriorityBadgeVariant = (priority: string): "default" | "destructive" | "outline" | "secondary" => {
     switch (priority) {
-      case "High": return "destructive";
-      case "Medium": return "warning";
-      default: return "secondary";
+      case 'high':
+        return 'destructive';
+      case 'low':
+        return 'secondary';
+      default:
+        return 'default';
     }
   };
 
@@ -306,7 +309,7 @@ const ExpertDashboard: React.FC = () => {
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
             ) : (
-              <ChartContainer config={{}} className="h-64">
+              <ChartContainer className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPieChart>
                     <Tooltip
@@ -382,7 +385,7 @@ const ExpertDashboard: React.FC = () => {
           {isLoading ? (
             <Skeleton className="h-64 w-full" />
           ) : (
-            <ChartContainer config={{}} className="h-64">
+            <ChartContainer className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsBarChart data={performanceData}>
                   <CartesianGrid strokeDasharray="3 3" />

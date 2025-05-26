@@ -91,7 +91,7 @@ export function OptimizedImageLoader({
           height={height}
           sizes={sizes}
           className={cn("transition-opacity duration-500", loaded ? "opacity-100" : "opacity-0")}
-          onLoadingComplete={handleLoad}
+          onLoad={handleLoad}
           onError={handleError}
           priority={priority}
           quality={quality}

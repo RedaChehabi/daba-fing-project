@@ -108,7 +108,7 @@ export function OptimizedModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        ref={rootRef}
+        ref={rootRef as React.RefObject<HTMLDivElement>}
         className={cn(
           "sm:rounded-lg border bg-card text-card-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:zoom-out-95 data-[state=closed]:fade-out data-[state=open]:zoom-in-100 data-[state=open]:fade-in",
           sizeClasses[size],

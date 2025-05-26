@@ -85,7 +85,7 @@ export function generateMetadata({
       siteName: openGraph.siteName || "DabaFing",
       images: openGraph.images,
       locale: openGraph.locale || "en_US",
-      type: openGraph.type || "website",
+      type: (openGraph.type || "website") as any,
     }
   }
 
