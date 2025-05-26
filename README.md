@@ -8,10 +8,17 @@
 
 *Advanced fingerprint analysis and identification system with web and desktop applications*
 
+[![GitHub Repository](https://img.shields.io/badge/GitHub-RedaChehabi%2Fdaba--fing--project-181717?style=flat-square&logo=github)](https://github.com/RedaChehabi/daba-fing-project)
+[![GitHub Stars](https://img.shields.io/github/stars/RedaChehabi/daba-fing-project?style=flat-square)](https://github.com/RedaChehabi/daba-fing-project/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/RedaChehabi/daba-fing-project?style=flat-square)](https://github.com/RedaChehabi/daba-fing-project/network)
+[![GitHub Issues](https://img.shields.io/github/issues/RedaChehabi/daba-fing-project?style=flat-square)](https://github.com/RedaChehabi/daba-fing-project/issues)
+[![GitHub License](https://img.shields.io/github/license/RedaChehabi/daba-fing-project?style=flat-square)](https://github.com/RedaChehabi/daba-fing-project/blob/main/LICENSE)
+
 [![Next.js](https://img.shields.io/badge/Next.js-15.2.4-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![Django](https://img.shields.io/badge/Django-5.1.7-green?style=flat-square&logo=django)](https://djangoproject.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)](https://typescriptlang.org/)
 [![Electron](https://img.shields.io/badge/Electron-Latest-47848F?style=flat-square&logo=electron)](https://electronjs.org/)
+[![React Native](https://img.shields.io/badge/React%20Native-0.74-61DAFB?style=flat-square&logo=react)](https://reactnative.dev/)
 
 </div>
 
