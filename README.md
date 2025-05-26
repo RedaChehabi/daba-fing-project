@@ -57,6 +57,13 @@ DabaFing is a comprehensive fingerprint analysis and management system designed 
 - **Native Integration**: OS-level file system access
 - **Enhanced Security**: Desktop-grade security features
 
+### 📱 Mobile Application (React Native)
+- **Cross-Platform**: iOS and Android support via Expo
+- **Camera Integration**: Real-time fingerprint capture
+- **Offline Analysis**: Local fingerprint processing
+- **Push Notifications**: Real-time analysis updates
+- **Biometric Auth**: Device-level security integration
+
 ### 🔐 Authentication & Authorization
 - **Multi-Role System**: Admin, Expert, User roles
 - **JWT Authentication**: Secure token-based auth
@@ -68,11 +75,12 @@ DabaFing is a comprehensive fingerprint analysis and management system designed 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Frontend      │    │   Backend       │    │   Database      │
-│   (Next.js)     │◄──►│   (Django)      │◄──►│   (PostgreSQL)  │
+│   (Multi-Platform)  │◄──►│   (Django)      │◄──►│   (PostgreSQL)  │
 │                 │    │                 │    │                 │
 │ • Web App       │    │ • REST API      │    │ • User Data     │
 │ • Electron App  │    │ • Auth System   │    │ • Fingerprints  │
-│ • Admin Panel   │    │ • File Upload   │    │ • Analytics     │
+│ • Mobile App    │    │ • File Upload   │    │ • Analytics     │
+│ • Admin Panel   │    │ • Image Analysis│    │ • Audit Logs    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
@@ -90,6 +98,17 @@ DabaFing is a comprehensive fingerprint analysis and management system designed 
 | **Electron** | Latest | Desktop app framework |
 | **Lucide React** | 0.485.0 | Icon library |
 | **Recharts** | 2.15.1 | Data visualization |
+
+### Mobile (v0.1.0)
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **React Native** | 0.74+ | Mobile app framework |
+| **Expo** | 53.0.0 | Development platform |
+| **TypeScript** | 5.0+ | Type safety |
+| **React Navigation** | 6.0+ | Mobile navigation |
+| **Expo Camera** | Latest | Camera integration |
+| **AsyncStorage** | Latest | Local storage |
+| **Axios** | Latest | HTTP client |
 
 ### Backend
 | Technology | Version | Purpose |
@@ -118,6 +137,7 @@ daba-fing-project/
 │   ├── 📁 venv/                  # Python virtual environment
 │   ├── 📄 manage.py              # Django management script
 │   ├── 📄 requirements.txt       # Python dependencies
+│   ├── 📄 env.example           # Environment variables template
 │   └── 📄 Dockerfile            # Backend container config
 │
 ├── 📁 frontend-web/              # Next.js application
@@ -139,10 +159,28 @@ daba-fing-project/
 │   ├── 📄 electron-preload.ts   # Electron preload script
 │   ├── 📄 next.config.ts        # Next.js configuration
 │   ├── 📄 package.json          # Frontend dependencies
+│   ├── 📄 env.example           # Environment variables template
 │   └── 📄 tsconfig.json         # TypeScript configuration
+│
+├── 📁 mobile-app/               # React Native application
+│   ├── 📁 src/
+│   │   ├── 📁 components/       # Reusable UI components
+│   │   ├── 📁 contexts/         # React contexts (Auth)
+│   │   ├── 📁 navigation/       # Navigation setup
+│   │   ├── 📁 screens/          # App screens
+│   │   ├── 📁 services/         # API services
+│   │   ├── 📁 types/            # TypeScript types
+│   │   └── 📁 utils/            # Utility functions
+│   ├── 📁 assets/               # Static assets
+│   ├── 📄 App.tsx               # Main app component
+│   ├── 📄 package.json          # Mobile dependencies
+│   ├── 📄 env.example           # Environment variables template
+│   └── 📄 README.md             # Mobile app documentation
 │
 ├── 📁 src/                       # Legacy source (if any)
 ├── 📄 docker-compose.yml         # Multi-service orchestration
+├── 📄 SECURITY.md               # Security guidelines
+├── 📄 ELECTRON_BUILD_GUIDE.md   # Electron distribution guide
 ├── 📄 README.md                  # This file
 └── 📄 .gitignore                # Git ignore rules
 ```
@@ -172,8 +210,28 @@ daba-fing-project/
    - **Web App**: http://localhost:3000
    - **Backend API**: http://localhost:8000
    - **Database**: localhost:5433
+   - **Mobile App**: See [Mobile App Setup](#mobile-app-setup)
 
 ### Manual Installation
+
+#### 🔒 Security Setup (IMPORTANT)
+Before starting, set up environment variables to protect sensitive information:
+
+```bash
+# Backend environment setup
+cp backend/env.example backend/.env
+# Edit backend/.env with your actual values
+
+# Frontend environment setup  
+cp frontend-web/env.example frontend-web/.env.local
+# Edit frontend-web/.env.local with your actual values
+```
+
+**⚠️ Security Requirements:**
+- Generate a new `SECRET_KEY` for production
+- Use strong passwords for database access
+- Never commit `.env` files to version control
+- Set `DEBUG=False` in production
 
 #### Backend Setup
 ```bash
@@ -186,9 +244,15 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Setup environment variables
-cp .env.example .env
-# Edit .env with your database credentials
+# Setup environment variables (REQUIRED)
+cp env.example .env
+# Edit .env with your actual configuration:
+# - SECRET_KEY (generate new for production)
+# - DB_PASSWORD (strong password)
+# - DEBUG=False (for production)
+
+# Generate production secret key
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
 
 # Run migrations
 python manage.py migrate
@@ -207,11 +271,37 @@ cd frontend-web
 # Install dependencies
 npm install
 
+# Setup environment variables (REQUIRED)
+cp env.example .env.local
+# Edit .env.local with your configuration:
+# - NEXT_PUBLIC_API_URL (backend API URL)
+
 # Start development server
 npm run dev
 
 # For Electron development
 npm run electron-dev
+```
+
+#### Mobile App Setup
+```bash
+cd mobile-app
+
+# Install dependencies
+npm install
+
+# Setup environment variables (REQUIRED)
+cp env.example .env
+# Edit .env with your configuration:
+# - EXPO_PUBLIC_API_URL (backend API URL)
+
+# Start Expo development server
+npm start
+
+# Run on specific platforms
+npm run android    # Android device/emulator
+npm run ios        # iOS device/simulator
+npm run web        # Web browser
 ```
 
 ## 💻 Development
@@ -248,20 +338,34 @@ python manage.py dbshell         # Database shell
 
 ### Environment Variables
 
+⚠️ **Security Notice**: Never commit actual `.env` files to version control. Use the provided example files as templates.
+
 #### Backend (.env)
 ```env
+# Copy from backend/env.example
 DEBUG=True
-SECRET_KEY=your-secret-key
-DATABASE_URL=postgresql://user:password@localhost:5433/dabafing
-ALLOWED_HOSTS=localhost,127.0.0.1
-CORS_ALLOWED_ORIGINS=http://localhost:3000
+SECRET_KEY=your-super-secret-django-key-here-change-this-in-production
+DB_NAME=dabafing
+DB_USER=postgres
+DB_PASSWORD=your-database-password
+DB_HOST=localhost
+DB_PORT=5432
+ALLOWED_HOSTS=localhost,127.0.0.1,your-domain.com
+CORS_ALLOWED_ORIGINS=http://localhost:3000,https://your-frontend-domain.com
 ```
 
 #### Frontend (.env.local)
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
+# Copy from frontend-web/env.example
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
 BUILD_TARGET=web  # or 'electron' for Electron builds
 ```
+
+#### Production Security
+- Generate new `SECRET_KEY`: `python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'`
+- Set `DEBUG=False`
+- Use HTTPS URLs
+- Restrict `ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS`
 
 ## 🌐 Deployment
 
@@ -304,12 +408,24 @@ npm run export
 
 ### Electron App Distribution
 ```bash
-# Build Electron app
-npm run electron-build
-
-# Package for distribution (requires electron-builder)
+# Build for current platform
 npm run electron-pack
+
+# Platform-specific builds
+npm run electron-pack:mac     # macOS (DMG + ZIP)
+npm run electron-pack:win     # Windows (EXE + NSIS)
+npm run electron-pack:linux   # Linux (AppImage + DEB + RPM)
+
+# Development testing
+npm run electron-pack:dir     # Unpacked version for testing
 ```
+
+**Output Files:**
+- **macOS**: `DabaFing-0.1.0.dmg`, `DabaFing-0.1.0-arm64.dmg`
+- **Windows**: `DabaFing Setup 0.1.0.exe`, `DabaFing 0.1.0.exe`
+- **Linux**: `DabaFing-0.1.0.AppImage`, `dabafing_0.1.0_amd64.deb`
+
+For detailed build instructions, see [ELECTRON_BUILD_GUIDE.md](./ELECTRON_BUILD_GUIDE.md)
 
 ## 📚 API Documentation
 
@@ -437,10 +553,24 @@ npm run test:e2e
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## 🔒 Security
+
+### Important Security Information
+This project handles sensitive data and requires proper security configuration:
+
+- **Environment Variables**: All sensitive configuration is stored in `.env` files
+- **Never Commit**: `.env` files are excluded from version control
+- **Example Files**: Use `env.example` files as templates
+- **Production Security**: Generate new secrets and use HTTPS
+
+For detailed security guidelines, see [SECURITY.md](./SECURITY.md)
+
 ## 🆘 Support
 
 ### Documentation
+- [Security Guidelines](SECURITY.md)
 - [Electron Configuration](frontend-web/ELECTRON_README.md)
+- [Electron Build Guide](ELECTRON_BUILD_GUIDE.md)
 - [API Documentation](#api-documentation)
 - [Deployment Guide](#deployment)
 

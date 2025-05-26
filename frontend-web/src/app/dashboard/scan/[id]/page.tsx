@@ -25,6 +25,16 @@ interface PageProps {
   params: Promise<{ id: string }>
 }
 
+export async function generateStaticParams() {
+  // For static export, we need to provide the possible id values
+  // In a real app, you would fetch this from your API
+  return [
+    { id: 'FP-123' },
+    { id: 'FP-124' },
+    { id: 'FP-125' },
+  ]
+}
+
 export default async function ScanDetailPage({ params }: PageProps) {
   const { id } = await params
   // In a real app, you would fetch scan data based on id

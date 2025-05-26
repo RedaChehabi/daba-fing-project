@@ -24,6 +24,16 @@ interface PageProps {
   params: Promise<{ id: string }>
 }
 
+export async function generateStaticParams() {
+  // For static export, we need to provide the possible id values
+  // In a real app, you would fetch this from your API
+  return [
+    { id: '1' },
+    { id: '2' },
+    { id: '3' },
+  ]
+}
+
 export default async function UserDetailPage({ params }: PageProps) {
   const { id } = await params
   // In a real app, you would fetch user data based on id

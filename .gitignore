@@ -1,2 +1,44 @@
+# Environment variables
 .env
-.env.example
+.env.local
+.env.production
+.env.staging
+
+# Database files
+*.sqlite3
+*.db
+
+# Build artifacts
+dist/
+build/
+.next/
+out/
+
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# User uploaded content
+media/
+uploads/
