@@ -67,7 +67,7 @@ function createWindow() {
 
   if (isDev) {
     win.loadURL('http://localhost:3000');
-    win.webContents.openDevTools(); // Open DevTools in development
+    //win.webContents.openDevTools(); // Open DevTools in development
   } else {
     // In production, load the static export from the 'out' directory
     // __dirname in this context will be frontend-web/electron-dist/
