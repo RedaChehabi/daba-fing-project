@@ -97,7 +97,7 @@ function createWindow() {
     });
     if (electron_is_dev_1.default) {
         win.loadURL('http://localhost:3000');
-        win.webContents.openDevTools(); // Open DevTools in development
+        //win.webContents.openDevTools(); // Open DevTools in development
     }
     else {
         // In production, load the static export from the 'out' directory

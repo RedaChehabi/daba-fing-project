@@ -34,12 +34,12 @@ import { expertApplicationService, type ExpertApplication } from '@/services/api
 
 // Types
 interface ApplicationUser {
-  id: number
-  username: string
-  email: string
-  first_name: string
-  last_name: string
-}
+    id: number
+    username: string
+    email: string
+    first_name: string
+    last_name: string
+  }
 
 interface ExtendedExpertApplication extends ExpertApplication {
   user?: ApplicationUser

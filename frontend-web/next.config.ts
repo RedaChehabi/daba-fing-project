@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 
+const isElectronBuild = process.env.BUILD_TARGET === 'electron';
 
 const nextConfig = {
   images: {
@@ -15,6 +16,12 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  // For electron builds, we need static export
+  ...(isElectronBuild && {
+    output: 'export',
+    trailingSlash: true,
+    distDir: 'out',
+  }),
   webpack: (config: any, { isServer }: { isServer: boolean }) => {
     // Disable webpack caching for Electron builds
     config.cache = false;
@@ -31,15 +38,17 @@ const nextConfig = {
     return config;
   },
   reactStrictMode: true,
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:8000/api/:path*',
-      },
-    ];
-  }
-  
+  // Only add rewrites for web builds, not electron
+  ...(!isElectronBuild && {
+    async rewrites() {
+      return [
+        {
+          source: '/api/:path*',
+          destination: 'http://localhost:8000/api/:path*',
+        },
+      ];
+    }
+  })
 }
 
 export default nextConfig

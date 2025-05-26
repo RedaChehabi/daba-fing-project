@@ -4,17 +4,7 @@ import type React from "react"
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import dynamic from "next/dynamic"
-// import DashboardHeader from '@/components/dashboard/dashboard-header'; // Correct import path? <- Remove this line
-
-// Dynamically import components that aren't needed immediately
-const DynamicSidebar = dynamic(
-  () => import("@/components/dashboard/sidebar").then((mod) => ({ default: mod.Sidebar })),
-  {
-    ssr: false,
-    loading: () => <div className="w-64 bg-background border-r animate-pulse" />,
-  },
-)
+import { Sidebar } from "@/components/dashboard/sidebar"
 
 export default function DashboardLayout({
   children,
@@ -64,7 +54,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex flex-col md:flex-row h-screen">
-      <DynamicSidebar />
+      <Sidebar />
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto p-4 md:p-6">{children}</div>
       </div>

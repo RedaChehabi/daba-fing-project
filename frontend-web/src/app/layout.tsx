@@ -8,6 +8,8 @@ import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
 import { fontSans } from "@/lib/fonts"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { ElectronRouteGuard } from "@/components/protection/ElectronRouteGuard"
+import { ElectronNavigation } from "@/components/electron/ElectronNavigation"
 
 export const metadata: Metadata = {
   title: "DabaFing - Fingerprint Analysis",
@@ -21,11 +23,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <ErrorBoundary>
+              <ElectronRouteGuard>
                 <div className="relative flex min-h-screen flex-col">
                   <SiteHeader />
+                  <ElectronNavigation />
                   <main className="flex-1">{children}</main>
                   <SiteFooter />
                 </div>
+              </ElectronRouteGuard>
             </ErrorBoundary>
           </AuthProvider>
         </ThemeProvider>
