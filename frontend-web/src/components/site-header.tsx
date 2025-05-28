@@ -7,6 +7,7 @@ import { Fingerprint, Menu, X } from "lucide-react"
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -88,11 +89,11 @@ export function SiteHeader() {
 
         <nav className="hidden md:flex items-center gap-8">
           {[
-            { href: "/", label: "Home" },
-            { href: "/about", label: "About" },
-            { href: "/help", label: "Help" },
-            { href: "/contact", label: "Contact" },
-            { href: "/download", label: "Download" },
+            { href: "/", label: "Home", tooltip: "Return to the main page" },
+            { href: "/about", label: "About", tooltip: "Learn about DabaFing and our mission" },
+            { href: "/help", label: "Help", tooltip: "Get help and view documentation" },
+            { href: "/contact", label: "Contact", tooltip: "Get in touch with our team" },
+            { href: "/download", label: "Download", tooltip: "Download the desktop application" },
           ].map((item, index) => (
             <motion.div
               key={item.href}
@@ -100,19 +101,26 @@ export function SiteHeader() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
             >
-              <Link
-                href={item.href}
-                className={`relative text-sm font-medium transition-colors hover:text-primary-foreground/80 ${
-                  isActive(item.href) ? "text-primary-foreground" : "text-primary-foreground/70"
-                } group`}
-              >
-                {item.label}
-                <span
-                  className={`absolute -bottom-1 left-0 h-0.5 bg-primary-foreground transition-all duration-300 ${
-                    isActive(item.href) ? "w-full" : "w-0 group-hover:w-full"
-                  }`}
-                ></span>
-              </Link>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={item.href}
+                    className={`relative text-sm font-medium transition-colors hover:text-primary-foreground/80 ${
+                      isActive(item.href) ? "text-primary-foreground" : "text-primary-foreground/70"
+                    } group`}
+                  >
+                    {item.label}
+                    <span
+                      className={`absolute -bottom-1 left-0 h-0.5 bg-primary-foreground transition-all duration-300 ${
+                        isActive(item.href) ? "w-full" : "w-0 group-hover:w-full"
+                      }`}
+                    ></span>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{item.tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
             </motion.div>
           ))}
         </nav>
@@ -123,32 +131,53 @@ export function SiteHeader() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Link href="/auth/login">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-primary-foreground hover:text-primary-foreground/80 hover:bg-primary-foreground/10"
-                >
-                  Sign In
-                </Button>
-              </Link>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link href="/auth/login">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary-foreground hover:text-primary-foreground/80 hover:bg-primary-foreground/10"
+                    >
+                      Sign In
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Sign in to your account</p>
+                </TooltipContent>
+              </Tooltip>
             </motion.div>
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Link href="/auth/register">
-                <Button
-                  size="sm"
-                  className="button-hover-effect bg-white text-primary hover:bg-white/90"
-                >
-                  Sign Up
-                </Button>
-              </Link>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link href="/auth/register">
+                    <Button
+                      size="sm"
+                      className="button-hover-effect bg-white text-primary hover:bg-white/90"
+                    >
+                      Sign Up
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Create a new account</p>
+                </TooltipContent>
+              </Tooltip>
             </motion.div>
           </div>
 
-          <ThemeToggle />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <ThemeToggle />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Toggle between light and dark themes</p>
+            </TooltipContent>
+          </Tooltip>
 
           <motion.div
             whileTap={{ scale: 0.9 }}

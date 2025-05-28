@@ -5,14 +5,26 @@ import React, { useState } from 'react';
 // Make sure this import points to your centralized Axios service
 import { fingerprintService } from '@/services/api';
 // ... other imports (Button, Input, etc.)
-import { Loader2, Upload, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, Upload, AlertCircle, CheckCircle, HelpCircle, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
+// Define proper interface for analysis result
+interface AnalysisResult {
+  pattern_type?: string;
+  confidence?: number;
+  quality_score?: string;
+  minutiae_count?: number;
+  classification?: string;
+  ridge_count?: number;
+  processing_time?: string;
+  additional_details?: Record<string, unknown>;
+}
 
 function FingerprintUploader() {
   const [file, setFile] = useState<File | null>(null);
@@ -20,7 +32,7 @@ function FingerprintUploader() {
   const [description, setDescription] = useState('');
   const [hand, setHand] = useState('right');
   const [finger, setFinger] = useState('index');
-  const [analysisResult, setAnalysisResult] = useState<any>(null); // Define a proper interface later
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -81,9 +93,13 @@ function FingerprintUploader() {
       setDescription('');
       setFile(null);
       setPreview(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Upload Error:', err);
-      const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message || 'Failed to upload fingerprint.';
+      const errorMsg = err instanceof Error && 'response' in err 
+        ? (err as { response?: { data?: { detail?: string; error?: string } } }).response?.data?.detail || 
+          (err as { response?: { data?: { detail?: string; error?: string } } }).response?.data?.error || 
+          err.message || 'Failed to upload fingerprint.'
+        : 'Failed to upload fingerprint.';
       setError(errorMsg);
     } finally {
       setIsLoading(false);
@@ -103,9 +119,13 @@ function FingerprintUploader() {
     try {
       const result = await fingerprintService.analyzeFingerprint(uploadedFingerprintId); // Use the service
       setAnalysisResult(result); // Store the actual API response
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Analysis Error:', err);
-      const errorMsg = err.response?.data?.detail || err.response?.data?.error || err.message || 'Failed to analyze fingerprint.';
+      const errorMsg = err instanceof Error && 'response' in err 
+        ? (err as { response?: { data?: { detail?: string; error?: string } } }).response?.data?.detail || 
+          (err as { response?: { data?: { detail?: string; error?: string } } }).response?.data?.error || 
+          err.message || 'Failed to analyze fingerprint.'
+        : 'Failed to analyze fingerprint.';
       setError(errorMsg);
     } finally {
       setIsLoading(false);
@@ -127,8 +147,18 @@ function FingerprintUploader() {
       <CardContent>
         <form onSubmit={handleUpload} className="space-y-4">
           {/* Title Input */}
-          <div className="space-y-2">
-            <label htmlFor="fp-title" className="text-sm font-medium">Title</label>
+          <div className="space-y-2" data-tutorial="form-fields">
+            <div className="flex items-center gap-2">
+              <label htmlFor="fp-title" className="text-sm font-medium">Title</label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Give your fingerprint a descriptive title for easy identification</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <Input 
               id="fp-title"
               value={title}
@@ -140,7 +170,17 @@ function FingerprintUploader() {
           
           {/* Description Input */}
           <div className="space-y-2">
-            <label htmlFor="fp-description" className="text-sm font-medium">Description (Optional)</label>
+            <div className="flex items-center gap-2">
+              <label htmlFor="fp-description" className="text-sm font-medium">Description (Optional)</label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add context like case number, date collected, or other relevant details</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <Textarea 
               id="fp-description"
               value={description}
@@ -153,7 +193,17 @@ function FingerprintUploader() {
           {/* Hand and Finger Selectors */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="fp-hand" className="text-sm font-medium">Hand</label>
+              <div className="flex items-center gap-2">
+                <label htmlFor="fp-hand" className="text-sm font-medium">Hand</label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Select which hand the fingerprint was taken from</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Select value={hand} onValueChange={setHand}>
                 <SelectTrigger id="fp-hand">
                   <SelectValue placeholder="Select hand" />
@@ -165,7 +215,17 @@ function FingerprintUploader() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label htmlFor="fp-finger" className="text-sm font-medium">Finger</label>
+              <div className="flex items-center gap-2">
+                <label htmlFor="fp-finger" className="text-sm font-medium">Finger</label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Specify which finger the print belongs to for accurate classification</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Select value={finger} onValueChange={setFinger}>
                 <SelectTrigger id="fp-finger">
                   <SelectValue placeholder="Select finger" />
@@ -183,129 +243,180 @@ function FingerprintUploader() {
           
           {/* File Input Area */}
           <div className="space-y-2">
-            <label htmlFor="fp-image-upload" className="text-sm font-medium">Fingerprint Image</label>
+            <div className="flex items-center gap-2">
+              <label htmlFor="fp-image-upload" className="text-sm font-medium">Fingerprint Image</label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Upload a clear, high-resolution fingerprint image (JPEG or PNG). Ensure good lighting and minimal noise for best analysis results.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <div 
-              className="flex items-center justify-center border-2 border-dashed rounded-md p-6 cursor-pointer min-h-[150px] hover:border-primary"
+              className="flex items-center justify-center border-2 border-dashed rounded-md p-6 cursor-pointer min-h-[150px] hover:border-primary transition-colors"
               onClick={() => document.getElementById('fp-image-upload-input')?.click()}
               onDrop={(e) => {
                 e.preventDefault();
                 if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                  handleFileChange({ target: { files: e.dataTransfer.files } } as any);
+                  const fakeEvent = {
+                    target: { files: e.dataTransfer.files }
+                  } as React.ChangeEvent<HTMLInputElement>;
+                  handleFileChange(fakeEvent);
                 }
               }}
               onDragOver={(e) => e.preventDefault()}
+              data-tutorial="upload-area"
             >
               {preview ? (
                 <div className="text-center">
                   <img src={preview} alt="Fingerprint preview" className="max-h-40 sm:max-h-64 mx-auto mb-2 rounded" />
-                  <p className="text-xs text-muted-foreground">Click or drag new image to change</p>
+                  <p className="text-sm text-muted-foreground">Click to change image</p>
                 </div>
               ) : (
-                <div className="text-center text-muted-foreground">
-                  <Upload className="mx-auto h-10 w-10" />
-                  <p className="mt-2 text-sm">Click to select or drag & drop image</p>
-                  <p className="text-xs mt-1">Supports JPEG, PNG, BMP, TIFF, WebP</p>
+                <div className="text-center">
+                  <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm font-medium">Click to upload or drag and drop</p>
+                  <p className="text-xs text-muted-foreground mt-1">JPEG, PNG up to 10MB</p>
                 </div>
               )}
-              <Input 
-                type="file" 
-                id="fp-image-upload-input"
-                onChange={handleFileChange} 
-                accept="image/*"
-                className="hidden"
-              />
             </div>
+            <input
+              id="fp-image-upload-input"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+              aria-label="Upload fingerprint image"
+              title="Upload fingerprint image file"
+            />
           </div>
-          
-          {/* Error and Success Alerts */}
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {uploadSuccess && uploadedFingerprintId && (
-            <Alert className="bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertTitle className="text-green-800 dark:text-green-300">Success</AlertTitle>
-              <AlertDescription className="text-green-700 dark:text-green-400">
-                Fingerprint uploaded successfully (ID: {uploadedFingerprintId})! You can now analyze it.
-              </AlertDescription>
-            </Alert>
-          )}
           
           {/* Upload Button */}
-          <div className="flex justify-end space-x-2">
-            <Button 
-              type="submit" 
-              disabled={!file || isLoading}
-            >
-              {isLoading && !analysisResult ? ( // Show "Uploading" only during upload phase
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                'Upload Fingerprint'
-              )}
-            </Button>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                type="submit" 
+                disabled={isLoading || !file || !title.trim()}
+                className="w-full"
+                data-tutorial="upload-button"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Fingerprint
+                  </>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Upload your fingerprint for secure storage and analysis</p>
+            </TooltipContent>
+          </Tooltip>
         </form>
         
-        {/* Analyze Button - shows after successful upload */}
-        {uploadSuccess && uploadedFingerprintId && (
-          <div className="mt-6 border-t pt-4">
-            <Button 
-              onClick={handleAnalyze} 
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading && !analysisResult ? ( // Show "Analyzing" if loading and no results yet
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                'Analyze Fingerprint'
-              )}
-            </Button>
-          </div>
+        {/* Success Message */}
+        {uploadSuccess && (
+          <Alert className="mt-4">
+            <CheckCircle className="h-4 w-4" />
+            <AlertTitle>Upload Successful!</AlertTitle>
+            <AlertDescription>
+              Your fingerprint has been uploaded successfully. You can now analyze it.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
       </CardContent>
       
-      {/* Analysis Results Display */}
-      {analysisResult && (
-        <CardFooter className="flex flex-col mt-6 border-t pt-4">
-          <div className="w-full p-4 bg-muted/50 rounded-md">
-            <h3 className="text-lg font-medium mb-2">Analysis Results for ID: {uploadedFingerprintId}</h3>
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="text-sm font-medium">Classification:</div>
-                <div className="text-sm">{analysisResult.classification || 'Not available'}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="text-sm font-medium">Ridge Count:</div>
-                <div className="text-sm">{analysisResult.ridge_count || analysisResult.ridgeCount || 'Not available'}</div>
-              </div>
-               <div className="grid grid-cols-2 gap-2">
-                <div className="text-sm font-medium">Confidence:</div>
-                <div className="text-sm">{analysisResult.confidence !== undefined ? `${analysisResult.confidence.toFixed(1)}%` : 'Not available'}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="text-sm font-medium">Processing Time:</div>
-                <div className="text-sm">{analysisResult.processing_time || analysisResult.processingTime || 'Not available'}</div>
-              </div>
-              
-              {analysisResult.additional_details && Object.keys(analysisResult.additional_details).length > 0 && (
-                <div className="mt-2">
-                  <div className="text-sm font-medium mb-1">Additional Details:</div>
-                  <pre className="text-xs bg-background p-2 rounded overflow-x-auto border">
-                    {JSON.stringify(analysisResult.additional_details, null, 2)}
-                  </pre>
-                </div>
-              )}
+      {/* Analysis Section */}
+      {uploadSuccess && uploadedFingerprintId && (
+        <CardFooter className="flex flex-col space-y-4">
+          <div className="w-full border-t pt-4">
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="text-lg font-semibold">Analysis</h3>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Our AI analyzes ridge patterns, minutiae points, and other unique characteristics to classify your fingerprint</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={handleAnalyze} 
+                  disabled={isLoading}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    'Analyze Fingerprint'
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Start AI-powered analysis to identify patterns and characteristics</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Analysis Results */}
+            {analysisResult && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  Analysis Results
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>These results show the AI&apos;s classification and confidence levels for your fingerprint</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Pattern Type:</span>
+                    <span className="font-medium">{analysisResult.pattern_type || 'Unknown'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Confidence:</span>
+                    <span className="font-medium">{analysisResult.confidence ? `${(analysisResult.confidence * 100).toFixed(1)}%` : 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Quality Score:</span>
+                    <span className="font-medium">{analysisResult.quality_score || 'N/A'}</span>
+                  </div>
+                  {analysisResult.minutiae_count && (
+                    <div className="flex justify-between">
+                      <span>Minutiae Points:</span>
+                      <span className="font-medium">{analysisResult.minutiae_count}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </CardFooter>
       )}
