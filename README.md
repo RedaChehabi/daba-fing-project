@@ -1,96 +1,118 @@
-# DabaFing - NextJS Web Version
+# DabaFing - Advanced Fingerprint Analysis System
 
-A NextJS-only version of the DabaFing fingerprint analysis system, converted from the original Electron application.
-
-## Features
-
-- **Fingerprint Classification**: Advanced fingerprint pattern recognition
-- **Ridge Counting**: Automated ridge counting algorithms
-- **User Authentication**: Secure login and user management
-- **Dashboard**: Comprehensive analytics and reporting
-- **Theme Support**: Light/dark mode switching
-- **Modern UI**: Built with Radix UI components and Tailwind CSS
-
-## Tech Stack
-
-- **Framework**: Next.js 15.2.4
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: Radix UI
-- **Animations**: Framer Motion
-- **Charts**: Recharts
-- **HTTP Client**: Axios
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ 
-- npm or yarn
-
-### Installation
-
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-### Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+A comprehensive fingerprint analysis system with multiple deployment targets: web application, desktop application, mobile app, and backend API.
 
 ## Project Structure
 
+This project is organized into separate directories for different components:
+
 ```
-src/
-├── app/                    # Next.js app directory
-│   ├── auth/              # Authentication pages
-│   ├── dashboard/         # Dashboard pages
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Home page
-├── components/            # Reusable components
-│   ├── dashboard/         # Dashboard-specific components
-│   ├── ui/               # UI components (shadcn/ui)
-│   └── ...               # Other components
-├── contexts/             # React contexts
-├── hooks/                # Custom hooks
-├── lib/                  # Utility libraries
-├── services/             # API services
-└── utils/                # Utility functions
+daba-fing-project/
+├── backend/                    # Django REST API backend
+├── frontend-desktop/           # Electron desktop application
+├── frontend-web-backup/        # Web application (backup)
+├── frontend-mobile/            # React Native mobile app
+├── .github/                    # GitHub workflows and templates
+├── docker-compose.yml          # Docker configuration
+├── QUICK_START_GUIDE.md        # Quick setup instructions
+├── USER_GUIDE.md              # User documentation
+├── FINAL_PROJECT_REPORT.md     # Project report
+└── README.md                   # This file
 ```
 
-## API Integration
+## Components
 
-The application expects a backend API running on `http://localhost:8000`. API calls are automatically proxied through Next.js rewrites.
+### 🖥️ Desktop Application (`frontend-desktop/`)
+- **Technology**: Next.js + Electron
+- **Purpose**: Native desktop app for Windows, macOS, and Linux
+- **Features**: Full offline functionality, native OS integration
+- **Target Users**: Professional forensic analysts
 
-## Differences from Electron Version
+### 📱 Mobile Application (`frontend-mobile/`)
+- **Technology**: React Native + Expo
+- **Purpose**: Mobile fingerprint capture and analysis
+- **Features**: Camera integration, offline analysis, push notifications
+- **Target Users**: Field investigators, mobile users
 
-This NextJS version removes all Electron-specific functionality:
-- No desktop app packaging
-- No native file system access
-- No Electron-specific security features
-- Pure web application that runs in browsers
+### 🌐 Web Application (`frontend-web-backup/`)
+- **Technology**: Next.js
+- **Purpose**: Browser-based access to the system
+- **Features**: Cross-platform web access, responsive design
+- **Target Users**: General users, remote access
+
+### 🔧 Backend API (`backend/`)
+- **Technology**: Django REST Framework
+- **Purpose**: Central API for all client applications
+- **Features**: User authentication, fingerprint processing, data storage
+- **Database**: SQLite (development), PostgreSQL (production)
+
+## Features
+
+### 🔍 Core Functionality
+- **Fingerprint Classification**: Advanced pattern recognition algorithms
+- **Ridge Counting**: Automated ridge counting and analysis
+- **Quality Assessment**: Image quality evaluation and enhancement
+- **Batch Processing**: Multiple fingerprint analysis
+- **Export Capabilities**: PDF reports, CSV data export
+
+### 🔐 Security & Authentication
+- **User Management**: Role-based access control
+- **Secure Authentication**: JWT-based authentication
+- **Data Encryption**: Secure data transmission and storage
+- **Audit Logging**: Complete activity tracking
+
+### 📊 Analytics & Reporting
+- **Dashboard**: Comprehensive analytics and insights
+- **Historical Data**: Analysis history and trends
+- **Performance Metrics**: System performance monitoring
+- **Custom Reports**: Configurable report generation
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+
+- Python 3.9+
+- Git
+
+### Backend Setup
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
+
+### Desktop App Setup
+```bash
+cd frontend-desktop
+npm install
+npm run dev
+```
+
+### Mobile App Setup
+```bash
+cd frontend-mobile
+npm install
+npm start
+```
+
+## Documentation
+
+- **[Quick Start Guide](QUICK_START_GUIDE.md)** - Get up and running quickly
+- **[User Guide](USER_GUIDE.md)** - Comprehensive user documentation
+- **[Final Project Report](FINAL_PROJECT_REPORT.md)** - Technical details and architecture
+- **[Contributing Guide](CONTRIBUTING.md)** - Development guidelines
 
 ## Development
 
-The application uses modern React patterns with:
-- Server-side rendering (SSR)
-- Client-side navigation
-- Responsive design
-- Accessibility features
+Each component has its own development environment and dependencies. See the individual README files in each directory for specific setup instructions.
 
 ## License
 
 This project is private and proprietary to the DabaFing team.
+
+## Support
+
+For support and questions, please refer to the documentation or contact the development team.
