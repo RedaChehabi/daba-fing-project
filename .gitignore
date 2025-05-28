@@ -41,4 +41,7 @@ logs/
 
 # User uploaded content
 media/
-uploads/
+uploads/frontend-desktop/dist/
+frontend-desktop/node_modules/
+frontend-web-backup/node_modules/
+frontend-mobile/node_modules/
