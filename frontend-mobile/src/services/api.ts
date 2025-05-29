@@ -1,7 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginRequest, RegisterRequest, AuthResponse, User } from '../types';
 
-const API_BASE_URL = 'http://localhost:8000/api'; // Replace with your actual API URL
+// For React Native, localhost doesn't work. Use your computer's IP address
+// Find your IP with: `ipconfig getifaddr en0` (macOS) or `hostname -I` (Linux)
+// Or use your computer's network IP (check in System Preferences > Network)
+const API_BASE_URL = __DEV__ 
+  ? 'http://192.168.1.33:8000/api' // Your actual local network IP
+  : 'https://your-production-server.com/api'; // Your production API URL
 
 class ApiService {
   private async getAuthToken(): Promise<string | null> {
@@ -219,11 +224,23 @@ class ApiService {
         headers: { 'Authorization': `Token ${token}` },
       });
       
-      if (!response.ok) throw new Error('Failed to get history');
-      return await response.json();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to get history`);
+      }
+      
+      const data = await response.json();
+      console.log('Analysis history response:', data);
+      
+      // Ensure we return the expected format
+      return {
+        history: data.history || [],
+        total_count: data.total_count || 0,
+        status: data.status || 'success'
+      };
     } catch (error) {
       console.error('Error getting analysis history:', error);
-      throw error;
+      throw new Error(`Failed to load analysis history: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

@@ -96,58 +96,29 @@ const ExpertDashboard: React.FC = () => {
   });
 
   const [caseQueue, setCaseQueue] = useState<CaseItem[]>([]);
+  // Note: Using static chart data until expert review system backend is implemented
 
-  // Simulate data fetching
+  // Load expert data from API
   useEffect(() => {
     const fetchExpertData = async () => {
       try {
         setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setError(null);
+        
+        // TODO: Replace with real expert-specific API endpoints when expert review system is implemented
+        // For now, return minimal data since expert review backend isn't built yet
         
         setStats({
-          assignedCases: 12,
-          pendingReview: 3,
-          completedAnalyses: 45,
-          averageAccuracy: 95.4,
+          assignedCases: 0,
+          pendingReview: 0,
+          completedAnalyses: 0,
+          averageAccuracy: 0,
         });
 
-        setCaseQueue([
-          { 
-            id: "CASE-12345", 
-            status: "Pending Review", 
-            priority: "High", 
-            assigned: "2 hours ago", 
-            type: "Feedback Validation",
-            submittedBy: "Dr. Smith",
-            confidence: 87.3
-          },
-          { 
-            id: "CASE-12346", 
-            status: "Needs Analysis", 
-            priority: "Medium", 
-            assigned: "1 day ago", 
-            type: "Initial Scan Analysis",
-            submittedBy: "System Auto"
-          },
-          { 
-            id: "CASE-12347", 
-            status: "In Progress", 
-            priority: "Low", 
-            assigned: "3 days ago", 
-            type: "Anomaly Check",
-            submittedBy: "Lab Tech A"
-          },
-          { 
-            id: "CASE-12348", 
-            status: "Pending Review", 
-            priority: "High", 
-            assigned: "4 hours ago", 
-            type: "Quality Assessment",
-            submittedBy: "Dr. Johnson",
-            confidence: 92.1
-          },
-        ]);
+        setCaseQueue([]);
+        
       } catch (err) {
+        console.error('Error loading expert data:', err);
         setError('Failed to load expert dashboard data');
       } finally {
         setIsLoading(false);

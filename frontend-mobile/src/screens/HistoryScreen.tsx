@@ -31,23 +31,25 @@ const HistoryScreen = ({ navigation }: any) => {
   const loadAnalysisHistory = async () => {
     try {
       const response = await authService.getAnalysisHistory();
+      console.log('Raw API response:', response);
       
       // Transform the response to match our interface
       const transformedData: AnalysisItem[] = response.history.map((item: any) => ({
-        id: item.id,
-        fingerprint_id: item.id, // Use the same ID or adjust as needed
+        id: item.id, // This is already "FP-123" format from backend
+        fingerprint_id: item.id,
         classification: item.classification,
         confidence: item.confidence,
-        analysis_date: item.date,
+        analysis_date: item.date, // Backend sends 'date', we need 'analysis_date'
         status: item.status,
         ridge_count: item.ridge_count,
         processing_time: item.processing_time,
       }));
       
+      console.log('Transformed data:', transformedData);
       setAnalyses(transformedData);
     } catch (error) {
       console.error('Error loading analysis history:', error);
-      Alert.alert('Error', 'Failed to load analysis history');
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to load analysis history');
     } finally {
       setIsLoading(false);
       setRefreshing(false);

@@ -37,9 +37,18 @@ import {
   AlertCircle,
   FileText,
   Star,
-  Award,UserCheck, Send, UserPlus, Loader2 
+  Award,UserCheck, Send, UserPlus, Loader2,
+  BarChart3,
+  MessageCircle,
+  Calendar,
+  Activity,
+  Info,
+  Plus,
+  Download,
+  RefreshCw,
 } from 'lucide-react';
 import ExpertApplicationForm from '../expert-application/expert-application-form';
+import { analysisService } from '@/services/api';
 
 // Types for better type safety
 interface UploadStats {
@@ -187,32 +196,38 @@ const UserDashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setError(null);
         
-        // Set mock data
+        // Get dashboard stats from the new endpoint
+        const response = await fetch('http://localhost:8000/api/dashboard/stats/', {
+          headers: {
+            'Authorization': `Token ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
+        
+        const data = await response.json();
+        
+        // Set stats from API response
         setStats({
-          totalUploads: 9,
-          analysesCompleted: 6,
-          analysesPending: 2,
+          totalUploads: data.stats.total_uploads,
+          analysesCompleted: data.stats.analyses_completed,
+          analysesPending: data.stats.analyses_pending,
         });
 
-        setRecentUploads([
-          { id: 1, title: 'Left Index', status: 'Analyzed', date: '2023-10-26', confidence: 94.5 },
-          { id: 2, title: 'Right Thumb', status: 'Pending', date: '2023-10-27' },
-          { id: 3, title: 'Left Thumb', status: 'Analyzed', date: '2023-10-25', confidence: 95.2 },
-          { id: 4, title: 'Right Index', status: 'Failed', date: '2023-10-24' },
-          { id: 5, title: 'Left Middle', status: 'Processing', date: '2023-10-28' },
-        ]);
+        // Set recent uploads from API response
+        setRecentUploads(data.recent_uploads || []);
 
-        setLastAnalysis({
-          id: 3,
-          title: 'Left Thumb',
-          classification: 'Whorl',
-          confidence: 95.2,
-          date: '2023-10-25',
-        });
+        // Set last analysis from API response
+        if (data.last_analysis) {
+          setLastAnalysis(data.last_analysis);
+        }
       } catch (err) {
+        console.error('Error loading dashboard data:', err);
         setError('Failed to load dashboard data');
       } finally {
         setIsLoading(false);

@@ -13,7 +13,8 @@ from .views import (
     admin_delete_user, admin_bulk_delete_users, admin_get_user,
     admin_list_roles, admin_create_role, admin_update_role, admin_delete_role,
     admin_get_permissions, admin_get_user_groups,
-    get_user_analysis_history, get_analysis_detail, delete_user_analysis, bulk_delete_user_analyses
+    get_user_analysis_history, get_analysis_detail, delete_user_analysis, bulk_delete_user_analyses,
+    get_analytics_data, get_dashboard_stats
 )
 
 # Add these URLs to the existing urlpatterns
@@ -52,4 +53,7 @@ urlpatterns = [
     path('analysis/<str:analysis_id>/', get_analysis_detail, name='get_analysis_detail'),
     path('analysis/<str:analysis_id>/delete/', delete_user_analysis, name='delete_user_analysis'),
     path('user/analysis/bulk-delete/', bulk_delete_user_analyses, name='bulk_delete_user_analyses'),
+    # Analytics and dashboard URLs
+    path('admin/analytics/', get_analytics_data, name='get_analytics_data'),
+    path('dashboard/stats/', get_dashboard_stats, name='get_dashboard_stats'),
 ]

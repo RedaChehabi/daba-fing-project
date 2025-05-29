@@ -118,31 +118,53 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Simulate data fetching
+  // Load admin data from API
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setError(null);
         
-        // Get expert applications count
+        // Get real admin data from analytics endpoint
         let pendingCount = 0;
+        let totalUsers = 0;
+        const systemHealthStatus: 'Operational' | 'Warning' | 'Critical' = 'Operational';
+        
         try {
-          const response = await expertApplicationService.getAll();
-          pendingCount = response.applications.filter((app) => app.status === 'pending').length;
+          // Get expert applications count
+          const expertResponse = await expertApplicationService.getAll();
+          pendingCount = expertResponse.applications.filter((app) => app.status === 'pending').length;
         } catch (error) {
           console.error('Failed to fetch expert applications:', error);
         }
         
+        try {
+          // Get analytics data if admin has access
+          const analyticsResponse = await fetch('http://localhost:8000/api/admin/analytics/', {
+            headers: {
+              'Authorization': `Token ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (analyticsResponse.ok) {
+            const analyticsData = await analyticsResponse.json();
+            totalUsers = analyticsData.users?.total || 0;
+            // You can add more metrics here when analytics backend is fully implemented
+          }
+        } catch (error) {
+          console.error('Failed to fetch analytics data:', error);
+        }
+        
         setStats({
-          totalUsers: 150,
+          totalUsers: totalUsers,
           pendingApprovals: pendingCount,
-          recentAnalyses: 25,
-          systemHealth: 'Operational',
-          activeExperts: 18,
+          recentAnalyses: 0, // TODO: Get from real analytics when implemented
+          systemHealth: systemHealthStatus,
+          activeExperts: 0, // TODO: Get from real analytics when implemented
         });
       } catch (err) {
+        console.error('Error loading admin data:', err);
         setError('Failed to load dashboard data');
       } finally {
         setLoading(false);

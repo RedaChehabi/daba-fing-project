@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
@@ -18,37 +18,75 @@ import {
   Legend,
 } from "recharts"
 
-// Sample data - replace with actual API calls
-const sampleData = {
-  userActivity: [
-    { name: "Jan", uploads: 400, verifications: 240 },
-    { name: "Feb", uploads: 300, verifications: 139 },
-    { name: "Mar", uploads: 200, verifications: 980 },
-    { name: "Apr", uploads: 278, verifications: 390 },
-    { name: "May", uploads: 189, verifications: 480 },
-    { name: "Jun", uploads: 239, verifications: 380 },
-    { name: "Jul", uploads: 349, verifications: 430 },
-  ],
-  systemPerformance: [
-    { name: "Jan", apiLatency: 120, processingTime: 240 },
-    { name: "Feb", apiLatency: 98, processingTime: 139 },
-    { name: "Mar", apiLatency: 86, processingTime: 180 },
-    { name: "Apr", apiLatency: 99, processingTime: 239 },
-    { name: "May", apiLatency: 85, processingTime: 180 },
-    { name: "Jun", apiLatency: 65, processingTime: 150 },
-    { name: "Jul", apiLatency: 70, processingTime: 160 },
-  ],
-}
-
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState({
     from: new Date(2023, 0, 1),
     to: new Date(),
   })
   const [activeTab, setActiveTab] = useState("activity")
+  const [reportData, setReportData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Load report data from analytics API
+  useEffect(() => {
+    const fetchReportData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Authentication required');
+          return;
+        }
+
+        // Use the same analytics endpoint as the Analytics page
+        const response = await fetch('http://localhost:8000/api/admin/analytics/', {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Reports API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const analyticsData = data.analytics;
+        
+        // Transform analytics data for reports format
+        setReportData({
+          userActivity: analyticsData.uploads.monthly || [],
+          systemPerformance: [], // No system performance data yet
+          totalUploads: analyticsData.uploads.total || 0,
+          verifications: analyticsData.analyses.completed || 0,
+          activeUsers: analyticsData.users.total || 0,
+          successRate: analyticsData.analyses.success_rate || 0
+        })
+      } catch (err) {
+        console.error('Error loading report data:', err)
+        setError('Failed to load reports data')
+        // Set empty data on error
+        setReportData({
+          userActivity: [],
+          systemPerformance: [],
+          totalUploads: 0,
+          verifications: 0,
+          activeUsers: 0,
+          successRate: 0
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchReportData()
+  }, [dateRange])
 
   const handleExport = () => {
-    // Implement export functionality
+    // TODO: Implement export functionality with real data
     console.log("Exporting report for:", dateRange)
   }
 
@@ -95,21 +133,41 @@ export default function ReportsPage() {
               <CardDescription>Overview of uploads and verifications over time</CardDescription>
             </CardHeader>
             <CardContent className="px-2">
-              <ChartContainer
-                className="h-[300px]"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={sampleData.userActivity}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="uploads" fill="var(--color-uploads)" />
-                    <Bar dataKey="verifications" fill="var(--color-verifications)" />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              {loading ? (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-sm text-muted-foreground">Loading reports data...</div>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-sm text-destructive mb-2">{error}</div>
+                    <div className="text-xs text-muted-foreground">Please check your permissions and try again</div>
+                  </div>
+                </div>
+              ) : reportData?.userActivity?.length > 0 ? (
+                <ChartContainer className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsBarChart data={reportData.userActivity}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="scans" fill="var(--color-uploads)" name="Uploads" />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="text-center">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <div className="text-sm text-muted-foreground mb-2">No activity data available</div>
+                    <div className="text-xs text-muted-foreground">Upload activity will appear here when there are more uploads</div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -120,7 +178,7 @@ export default function ReportsPage() {
                 <Eye className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">1,955</div>
+                <div className="text-2xl font-bold">{reportData?.totalUploads}</div>
                 <p className="text-xs text-muted-foreground">+20.1% from last month</p>
               </CardContent>
             </Card>
@@ -130,7 +188,7 @@ export default function ReportsPage() {
                 <Eye className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">2,848</div>
+                <div className="text-2xl font-bold">{reportData?.verifications}</div>
                 <p className="text-xs text-muted-foreground">+15% from last month</p>
               </CardContent>
             </Card>
@@ -140,7 +198,7 @@ export default function ReportsPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">573</div>
+                <div className="text-2xl font-bold">{reportData?.activeUsers}</div>
                 <p className="text-xs text-muted-foreground">+201 since last week</p>
               </CardContent>
             </Card>
@@ -150,7 +208,7 @@ export default function ReportsPage() {
                 <BarChart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">98.3%</div>
+                <div className="text-2xl font-bold">{reportData?.successRate}%</div>
                 <p className="text-xs text-muted-foreground">+2.1% from last month</p>
               </CardContent>
             </Card>
@@ -164,21 +222,21 @@ export default function ReportsPage() {
               <CardDescription>API latency and processing time metrics</CardDescription>
             </CardHeader>
             <CardContent className="px-2">
-              <ChartContainer
-                className="h-[300px]"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={sampleData.systemPerformance}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="apiLatency" fill="var(--color-apiLatency)" />
-                    <Bar dataKey="processingTime" fill="var(--color-processingTime)" />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              {loading ? (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-sm text-muted-foreground">Loading performance data...</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="text-center">
+                    <BarChart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <div className="text-sm text-muted-foreground mb-2">No system performance data available</div>
+                    <div className="text-xs text-muted-foreground">Performance metrics will appear here when system monitoring is implemented</div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

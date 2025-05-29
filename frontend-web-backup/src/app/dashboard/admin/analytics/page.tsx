@@ -137,14 +137,37 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState('6months');
   const [selectedMetric, setSelectedMetric] = useState('all');
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
 
-  // Simulate data fetching
+  // Load real analytics data from API
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setError(null);
+        
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Authentication required');
+          return;
+        }
+
+        const response = await fetch('http://localhost:8000/api/admin/analytics/', {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Analytics API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setAnalyticsData(data.analytics);
+        
       } catch (err) {
+        console.error('Failed to load analytics data:', err);
         setError('Failed to load analytics data');
       } finally {
         setLoading(false);
