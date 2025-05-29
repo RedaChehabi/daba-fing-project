@@ -1,22 +1,63 @@
 # DabaFing Quick Start Guide
 
-Get up and running with DabaFing in just a few minutes! This guide covers the essentials to start analyzing fingerprints right away.
+Get up and running with DabaFing locally in just a few minutes! This guide covers the essentials to start analyzing fingerprints right away.
 
-## 🚀 Quick Setup (5 minutes)
+## 🚀 Quick Setup (10 minutes)
 
-### Step 1: Create Your Account
-1. Visit [DabaFing](https://dabafing.com) or open the desktop app
-2. Click **"Sign Up"**
+### Step 1: Set Up the Backend
+1. **Clone the repository** (if not already done)
+2. **Navigate to backend directory**:
+   ```bash
+   cd backend
+   ```
+3. **Create virtual environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+4. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+5. **Run migrations**:
+   ```bash
+   python manage.py migrate
+   ```
+6. **Create admin user**:
+   ```bash
+   python create_admin.py
+   ```
+7. **Start the backend server**:
+   ```bash
+   python manage.py runserver 0.0.0.0:8000
+   ```
+
+### Step 2: Choose Your Frontend
+Pick one of the available frontend options:
+
+#### Option A: Desktop App (Recommended for development)
+```bash
+cd frontend-desktop
+npm install
+npm run dev
+```
+Open your browser to `http://localhost:3000`
+
+#### Option B: Mobile App
+```bash
+cd frontend-mobile
+npm install
+npm start
+```
+Use Expo Go app to scan the QR code
+
+### Step 3: Create Your Account
+1. Open the application (desktop or mobile)
+2. Click **"Register"** to create a new account
 3. Enter your email and create a strong password
-4. Verify your email address
-5. Complete your profile
+4. Complete your profile
 
-### Step 2: Take the Interactive Tutorial
-- Click the **"Tutorials"** button (bottom-right corner)
-- Select **"Getting Started with DabaFing"**
-- Follow the guided tour (5 minutes)
-
-### Step 3: Upload Your First Fingerprint
+### Step 4: Upload Your First Fingerprint
 1. Click **"Upload Fingerprint"** on the dashboard
 2. Drag & drop your image or click to browse
 3. Fill in the required information:
@@ -25,7 +66,7 @@ Get up and running with DabaFing in just a few minutes! This guide covers the es
    - **Finger**: Select the specific finger
 4. Click **"Upload Fingerprint"**
 
-### Step 4: Analyze Your Fingerprint
+### Step 5: Analyze Your Fingerprint
 1. After upload confirmation, click **"Analyze Fingerprint"**
 2. Wait 10-30 seconds for AI processing
 3. Review your results!
@@ -118,35 +159,33 @@ Get up and running with DabaFing in just a few minutes! This guide covers the es
 - **Tutorials**: Interactive guides for all features
 
 ### Documentation
-- **User Guide**: Complete documentation (see USER_GUIDE.md)
-- **FAQ**: Common questions and answers
-- **Video Tutorials**: Step-by-step visual guides
+- **User Guide**: Complete documentation (see [USER_GUIDE.md](./USER_GUIDE.md))
+- **Project Report**: Technical details (see [FINAL_PROJECT_REPORT.md](./FINAL_PROJECT_REPORT.md))
+- **Contributing Guide**: Development guidelines (see [CONTRIBUTING.md](./CONTRIBUTING.md))
 
-### Support Options
-- **Email**: support@dabafing.com
-- **Help Center**: Built-in searchable knowledge base
-- **Community Forum**: Connect with other users
-- **Live Chat**: Available during business hours
+### Local Development Support
+- **Check logs**: Backend logs show in terminal where you ran `python manage.py runserver`
+- **API testing**: Use `http://localhost:8000/admin` for Django admin interface
+- **Database**: Use `python manage.py shell` for database inspection
+
+### Troubleshooting
+- **Mobile App Issues**: See [MOBILE_APP_TROUBLESHOOTING.md](./MOBILE_APP_TROUBLESHOOTING.md)
+- **Backend Issues**: Check Django server logs for errors
+- **Frontend Issues**: Check browser console for JavaScript errors
 
 ## 🎯 What's Next?
 
-### Explore Advanced Features
+### Explore Features
 - **Dashboard Analytics**: View your upload history and statistics
 - **Export Options**: Download results in PDF or JSON format
-- **Expert Verification**: Request professional review (if available)
-- **Batch Processing**: Upload multiple fingerprints efficiently
+- **User Management**: Access Django admin for user administration
+- **API Testing**: Use Django REST Framework browsable API
 
-### Learn More
-- Complete the **full tutorial series**
-- Read the **comprehensive User Guide**
-- Join the **community forum**
-- Follow our **blog** for tips and updates
-
-### Upgrade Your Account
-- **Expert Account**: Access advanced analysis tools
-- **Team Features**: Collaborate with colleagues
-- **API Access**: Integrate with your systems
-- **Priority Support**: Faster response times
+### Development
+- **Read the documentation**: Comprehensive guides available
+- **Explore the codebase**: Well-structured project organization
+- **Run tests**: Each component has test suites
+- **Contribute**: See contributing guidelines
 
 ---
 
@@ -171,8 +210,33 @@ Get up and running with DabaFing in just a few minutes! This guide covers the es
 - **JavaScript**: Must be enabled
 - **Cookies**: Required for authentication
 
+### Local URLs
+- **Backend API**: `http://localhost:8000/api/`
+- **Django Admin**: `http://localhost:8000/admin/`
+- **Desktop App**: `http://localhost:3000`
+- **API Documentation**: `http://localhost:8000/api/` (browsable)
+
+### Default Credentials
+- **Admin User**: Created via `python create_admin.py`
+- **Test Users**: Created via `python create_test_users.py`
+
+### Useful Commands
+```bash
+# Backend
+cd backend
+python manage.py runserver 0.0.0.0:8000
+
+# Desktop App  
+cd frontend-desktop
+npm run dev
+
+# Mobile App
+cd frontend-mobile
+npm start
+```
+
 ---
 
-**Ready to get started?** [Sign up now](https://dabafing.com/signup) or [download the desktop app](https://dabafing.com/download)!
+**Ready to get started?** Follow the setup steps above and start analyzing fingerprints locally!
 
 *Need the full documentation? See [USER_GUIDE.md](./USER_GUIDE.md) for comprehensive instructions.* 

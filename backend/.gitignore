@@ -30,6 +30,7 @@ media/
 .env.local
 .env.production
 .env.staging
+.env.example
 
 # IDE
 .vscode/

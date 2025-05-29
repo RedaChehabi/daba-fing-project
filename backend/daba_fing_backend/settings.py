@@ -21,6 +21,9 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 if not SECRET_KEY:
@@ -28,9 +31,6 @@ if not SECRET_KEY:
         SECRET_KEY = 'django-insecure-development-key-only'
     else:
         raise ValueError("SECRET_KEY environment variable is required for production!")
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,192.168.1.33,0.0.0.0').split(',')
 
@@ -179,26 +179,46 @@ REST_FRAMEWORK = {
     ],
 }
 
-# CORS settings
-DEBUG = True # Assuming this is already set
-
-# CORS settings
+# CORS settings - Production ready configuration
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
-    # Or, for slightly more restriction in dev if you know your frontend port:
-    # CORS_ALLOWED_ORIGINS = [
-    #     "http://localhost:3000", # For Next.js dev
-    #     "http://localhost:3004", # If Electron dev uses this port
-    #     # Add other local dev origins if necessary
-    # ]
+    # Allow common development origins
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",  # Next.js dev server
+        "http://localhost:3001",  # Alternative dev port
+        "http://127.0.0.1:3000",
+        "http://192.168.1.33:3000",  # Local network access
+    ]
 else:
     CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = [
-        "https://your_production_frontend_domain.com",
-        # Add other production domains/subdomains if needed
-    ]
-    # You might also consider CORS_ALLOWED_ORIGIN_REGEXES for more complex patterns
+    # Production domains should be specified in environment variables
+    production_origins = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in production_origins if origin.strip()]
+    
 CORS_ALLOW_CREDENTIALS = True
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Production Security Settings
+if not DEBUG:
+    # HTTPS and Security Headers
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # Cookie Security
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    
+    # Additional Security Headers
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'
+    
+    # Require stronger secret key in production
+    if not SECRET_KEY or len(SECRET_KEY) < 50:
+        raise ValueError("Production requires a SECRET_KEY with at least 50 characters!")

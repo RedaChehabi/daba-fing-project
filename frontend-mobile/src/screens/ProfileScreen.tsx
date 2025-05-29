@@ -89,18 +89,29 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const handleSaveProfile = async () => {
     try {
-      // TODO: Implement profile update API call
-      Alert.alert(
-        'Profile Update',
-        'Profile update functionality will be implemented when the backend supports it.',
-        [{ text: 'OK' }]
-      );
-      setEditModalVisible(false);
+      // Implement profile update API call
+      const updateData = {
+        username: editedUsername,
+        email: editedEmail
+      };
+
+      const response = await authService.updateProfile(updateData);
       
-      // For now, just refresh user data
-      await refreshUser();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      if (response) {
+        Alert.alert(
+          'Success',
+          'Profile updated successfully!',
+          [{ text: 'OK' }]
+        );
+        setEditModalVisible(false);
+        
+        // Refresh user data to get the latest information
+        await refreshUser();
+      }
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      const message = error.message || 'Failed to update profile. Please try again.';
+      Alert.alert('Error', message);
     }
   };
 

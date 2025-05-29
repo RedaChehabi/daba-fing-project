@@ -153,6 +153,38 @@ class ApiService {
     }
   }
 
+  async updateProfile(profileData: { username?: string; email?: string; first_name?: string; last_name?: string }): Promise<User> {
+    try {
+      const token = await this.getAuthToken();
+      if (!token) throw new Error('No auth token');
+
+      const response = await fetch(`${API_BASE_URL}/userprofile/update/`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to update profile');
+      }
+      
+      const data = await response.json();
+      return {
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        role: data.role
+      };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  }
+
   async isAuthenticated(): Promise<boolean> {
     try {
       const token = await this.getAuthToken();
