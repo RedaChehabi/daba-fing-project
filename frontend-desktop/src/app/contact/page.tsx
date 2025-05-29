@@ -72,8 +72,7 @@ export default function ContactPage() {
                 <Mail className="h-6 w-6 text-primary" />
                 <div>
                   <h3 className="font-medium">Email</h3>
-                  <p className="text-muted-foreground">jb.nsekuye@isicod.net</p>
-                  <p className="text-muted-foreground">jeanbosco.nsekuye@uit.ac.ma</p>
+                  <p className="text-muted-foreground">mail@mail.com</p>
                 </div>
               </div>
 
@@ -81,7 +80,7 @@ export default function ContactPage() {
                 <Phone className="h-6 w-6 text-primary" />
                 <div>
                   <h3 className="font-medium">Phone</h3>
-                  <p className="text-muted-foreground">+212 687 522 465</p>
+                  <p className="text-muted-foreground">06XXXXXXXX</p>
                 </div>
               </div>
 
@@ -89,7 +88,7 @@ export default function ContactPage() {
                 <MapPin className="h-6 w-6 text-primary" />
                 <div>
                   <h3 className="font-medium">Address</h3>
-                  <p className="text-muted-foreground">ISICOD, Tangier, Morocco</p>
+                  <p className="text-muted-foreground">Morocco</p>
                 </div>
               </div>
             </div>
