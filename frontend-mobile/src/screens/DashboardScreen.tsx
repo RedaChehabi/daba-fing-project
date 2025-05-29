@@ -130,7 +130,7 @@ const DashboardScreen = ({ navigation }: any) => {
       {/* Welcome Header */}
       <View style={styles.header}>
         <Text style={styles.welcomeText}>Welcome back,</Text>
-        <Text style={styles.userName}>{user?.username || 'User'}!</Text>
+        <Text style={styles.userName}>{user?.username || 'User'}</Text>
       </View>
 
       {/* Statistics Cards */}
