@@ -11,11 +11,20 @@ from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, permission_classes
 from .models import (
     FingerprintImage, FingerprintAnalysis, ModelVersion, AnalysisHistory,
-    UserProfile, UserRole, ExpertApplication  # Add ExpertApplication
+    UserProfile, UserRole, ExpertApplication, ImageSource  # Add ImageSource
 )
 # Removed UserProfile, UserRole, User imports here as they are already imported above or from auth.models
 from .serializers import FingerprintImageSerializer
 from django.db import transaction # Import transaction
+from django.contrib.auth import authenticate
+from .permissions import IsUser, IsExpert, IsAdmin
+import os
+import tempfile
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from io import BytesIO
+from PIL import Image
+import traceback
 
 
 
@@ -542,3 +551,708 @@ def review_expert_application(request, application_id):
         'detail': f'Expert application {action}d successfully.',
         'status': 'success'
     })
+
+# Admin User Management Endpoints
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_list_users(request):
+    """List all users (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        users = User.objects.all().select_related('profile__role')
+        user_list = []
+        
+        for u in users:
+            # Get user profile or create default
+            try:
+                profile = u.profile
+                if not profile.role:
+                    default_role, _ = UserRole.objects.get_or_create(role_name=UserRole.ROLE_REGULAR)
+                    profile.role = default_role
+                    profile.save()
+                role_name = profile.role.role_name
+                first_name = profile.first_name or u.first_name or ""
+                last_name = profile.last_name or u.last_name or ""
+                is_active = profile.is_active and u.is_active
+                registration_date = profile.registration_date
+            except Exception:
+                # Create profile if doesn't exist
+                default_role, _ = UserRole.objects.get_or_create(role_name=UserRole.ROLE_REGULAR)
+                profile = UserProfile.objects.create(user=u, role=default_role)
+                role_name = default_role.role_name
+                first_name = u.first_name or ""
+                last_name = u.last_name or ""
+                is_active = u.is_active
+                registration_date = profile.registration_date
+            
+            # Get analysis count
+            analysis_count = FingerprintAnalysis.objects.filter(image__user=u).count()
+            
+            # Get last login info
+            last_login = u.last_login.strftime('%Y-%m-%d %H:%M:%S') if u.last_login else "Never"
+            
+            user_data = {
+                'id': u.id,
+                'username': u.username,
+                'email': u.email,
+                'first_name': first_name,
+                'last_name': last_name,
+                'full_name': f"{first_name} {last_name}".strip() or u.username,
+                'role': role_name.lower(),
+                'status': 'active' if is_active else 'inactive',
+                'last_active': last_login,
+                'join_date': registration_date.strftime('%Y-%m-%d') if registration_date else u.date_joined.strftime('%Y-%m-%d'),
+                'analyses': analysis_count,
+                'date_joined': u.date_joined.strftime('%Y-%m-%d %H:%M:%S'),
+                'is_staff': u.is_staff,
+                'is_superuser': u.is_superuser,
+            }
+            user_list.append(user_data)
+        
+        return Response({
+            'users': user_list,
+            'total_count': len(user_list)
+        })
+    except Exception as e:
+        print(f"Error in admin_list_users: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while fetching users.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_create_user(request):
+    """Create a new user (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        username = request.data.get('username', '').strip()
+        email = request.data.get('email', '').strip()
+        first_name = request.data.get('first_name', '').strip()
+        last_name = request.data.get('last_name', '').strip()
+        password = request.data.get('password', '').strip()
+        role_name = request.data.get('role', 'Regular').strip()
+        
+        # Validation
+        if not username:
+            return Response({'detail': 'Username is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not email:
+            return Response({'detail': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not password:
+            return Response({'detail': 'Password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check for existing user/email
+        if User.objects.filter(username=username).exists():
+            return Response({'detail': 'User with this username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(email=email).exists():
+            return Response({'detail': 'User with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate role
+        valid_roles = [UserRole.ROLE_REGULAR, UserRole.ROLE_EXPERT, UserRole.ROLE_ADMIN]
+        if role_name not in valid_roles:
+            role_name = UserRole.ROLE_REGULAR
+        
+        # Create user
+        new_user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name
+        )
+        
+        # Set role
+        target_role, _ = UserRole.objects.get_or_create(role_name=role_name)
+        new_user.profile.role = target_role
+        new_user.profile.first_name = first_name
+        new_user.profile.last_name = last_name
+        new_user.profile.save()
+        
+        return Response({
+            'id': new_user.id,
+            'username': new_user.username,
+            'email': new_user.email,
+            'role': role_name,
+            'message': 'User created successfully.'
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        print(f"Error in admin_create_user: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while creating the user.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def admin_update_user(request, user_id):
+    """Update a user (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({
+            'detail': 'User not found.',
+            'status': 'error'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    try:
+        # Update user fields
+        username = request.data.get('username', target_user.username).strip()
+        email = request.data.get('email', target_user.email).strip()
+        first_name = request.data.get('first_name', target_user.first_name or '').strip()
+        last_name = request.data.get('last_name', target_user.last_name or '').strip()
+        role_name = request.data.get('role', '').strip()
+        is_active = request.data.get('is_active', target_user.is_active)
+        
+        # Check for duplicate username/email (excluding current user)
+        if username != target_user.username and User.objects.filter(username=username).exists():
+            return Response({'detail': 'Username already taken.'}, status=status.HTTP_400_BAD_REQUEST)
+        if email != target_user.email and User.objects.filter(email=email).exists():
+            return Response({'detail': 'Email already taken.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update user
+        target_user.username = username
+        target_user.email = email
+        target_user.first_name = first_name
+        target_user.last_name = last_name
+        target_user.is_active = is_active
+        target_user.save()
+        
+        # Update profile
+        if role_name:
+            valid_roles = [UserRole.ROLE_REGULAR, UserRole.ROLE_EXPERT, UserRole.ROLE_ADMIN]
+            if role_name in valid_roles:
+                target_role, _ = UserRole.objects.get_or_create(role_name=role_name)
+                target_user.profile.role = target_role
+        
+        target_user.profile.first_name = first_name
+        target_user.profile.last_name = last_name
+        target_user.profile.is_active = is_active
+        target_user.profile.save()
+        
+        return Response({
+            'id': target_user.id,
+            'username': target_user.username,
+            'email': target_user.email,
+            'role': target_user.profile.role.role_name if target_user.profile.role else UserRole.ROLE_REGULAR,
+            'message': 'User updated successfully.'
+        })
+        
+    except Exception as e:
+        print(f"Error in admin_update_user: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while updating the user.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def admin_delete_user(request, user_id):
+    """Delete a user (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+        
+        # Prevent deleting self
+        if target_user.id == user.id:
+            return Response({
+                'detail': 'Cannot delete your own account.',
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        target_user.delete()
+        
+        return Response({
+            'message': 'User deleted successfully.',
+            'status': 'success'
+        })
+        
+    except User.DoesNotExist:
+        return Response({
+            'detail': 'User not found.',
+            'status': 'error'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Error in admin_delete_user: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while deleting the user.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_bulk_delete_users(request):
+    """Bulk delete users (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        user_ids = request.data.get('user_ids', [])
+        
+        if not user_ids:
+            return Response({
+                'detail': 'No user IDs provided.',
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Prevent deleting self
+        if user.id in user_ids:
+            return Response({
+                'detail': 'Cannot delete your own account.',
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        deleted_count = User.objects.filter(id__in=user_ids).delete()[0]
+        
+        return Response({
+            'message': f'{deleted_count} users deleted successfully.',
+            'deleted_count': deleted_count,
+            'status': 'success'
+        })
+        
+    except Exception as e:
+        print(f"Error in admin_bulk_delete_users: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while deleting users.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_get_user(request, user_id):
+    """Get detailed user information (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+        
+        # Get user profile
+        try:
+            profile = target_user.profile
+            role_name = profile.role.role_name if profile.role else UserRole.ROLE_REGULAR
+        except:
+            # Create profile if doesn't exist
+            default_role, _ = UserRole.objects.get_or_create(role_name=UserRole.ROLE_REGULAR)
+            profile = UserProfile.objects.create(user=target_user, role=default_role)
+            role_name = default_role.role_name
+        
+        # Get user statistics
+        analysis_count = FingerprintAnalysis.objects.filter(image__user=target_user).count()
+        
+        user_data = {
+            'id': target_user.id,
+            'username': target_user.username,
+            'email': target_user.email,
+            'first_name': profile.first_name or target_user.first_name or '',
+            'last_name': profile.last_name or target_user.last_name or '',
+            'role': role_name,
+            'is_active': profile.is_active and target_user.is_active,
+            'date_joined': target_user.date_joined.strftime('%Y-%m-%d %H:%M:%S'),
+            'last_login': target_user.last_login.strftime('%Y-%m-%d %H:%M:%S') if target_user.last_login else None,
+            'analyses_count': analysis_count,
+            'is_staff': target_user.is_staff,
+            'is_superuser': target_user.is_superuser,
+        }
+        
+        return Response(user_data)
+        
+    except User.DoesNotExist:
+        return Response({
+            'detail': 'User not found.',
+            'status': 'error'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Error in admin_get_user: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while fetching user data.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Role Management Endpoints
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_list_roles(request):
+    """List all roles (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        roles = UserRole.objects.all()
+        role_list = []
+        
+        for role in roles:
+            # Count users with this role
+            user_count = UserProfile.objects.filter(role=role).count()
+            
+            role_data = {
+                'id': role.id,
+                'role_name': role.role_name,
+                'description': role.description or '',
+                'access_level': role.access_level,
+                'can_provide_expert_feedback': role.can_provide_expert_feedback,
+                'can_manage_users': role.can_manage_users,
+                'can_access_analytics': role.can_access_analytics,
+                'user_count': user_count,
+            }
+            role_list.append(role_data)
+        
+        return Response({
+            'roles': role_list,
+            'total_count': len(role_list)
+        })
+    except Exception as e:
+        print(f"Error in admin_list_roles: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while fetching roles.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_create_role(request):
+    """Create a new role (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        role_name = request.data.get('role_name', '').strip()
+        description = request.data.get('description', '').strip()
+        access_level = request.data.get('access_level', 1)
+        can_provide_expert_feedback = request.data.get('can_provide_expert_feedback', False)
+        can_manage_users = request.data.get('can_manage_users', False)
+        can_access_analytics = request.data.get('can_access_analytics', False)
+        
+        # Validation
+        if not role_name:
+            return Response({'detail': 'Role name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if role already exists
+        if UserRole.objects.filter(role_name=role_name).exists():
+            return Response({'detail': 'Role with this name already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Create role
+        new_role = UserRole.objects.create(
+            role_name=role_name,
+            description=description,
+            access_level=access_level,
+            can_provide_expert_feedback=can_provide_expert_feedback,
+            can_manage_users=can_manage_users,
+            can_access_analytics=can_access_analytics
+        )
+        
+        return Response({
+            'id': new_role.id,
+            'role_name': new_role.role_name,
+            'description': new_role.description,
+            'message': 'Role created successfully.'
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        print(f"Error in admin_create_role: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while creating the role.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def admin_update_role(request, role_id):
+    """Update a role (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        role = UserRole.objects.get(id=role_id)
+        
+        # Update role fields
+        role.description = request.data.get('description', role.description)
+        role.access_level = request.data.get('access_level', role.access_level)
+        role.can_provide_expert_feedback = request.data.get('can_provide_expert_feedback', role.can_provide_expert_feedback)
+        role.can_manage_users = request.data.get('can_manage_users', role.can_manage_users)
+        role.can_access_analytics = request.data.get('can_access_analytics', role.can_access_analytics)
+        
+        role.save()
+        
+        return Response({
+            'id': role.id,
+            'role_name': role.role_name,
+            'description': role.description,
+            'message': 'Role updated successfully.'
+        })
+        
+    except UserRole.DoesNotExist:
+        return Response({
+            'detail': 'Role not found.',
+            'status': 'error'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Error in admin_update_role: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while updating the role.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def admin_delete_role(request, role_id):
+    """Delete a role (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        role = UserRole.objects.get(id=role_id)
+        
+        # Prevent deleting default roles
+        if role.role_name in [UserRole.ROLE_ADMIN, UserRole.ROLE_EXPERT, UserRole.ROLE_REGULAR]:
+            return Response({
+                'detail': 'Cannot delete default system roles.',
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if role is in use
+        if UserProfile.objects.filter(role=role).exists():
+            return Response({
+                'detail': 'Cannot delete role that is assigned to users.',
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        role.delete()
+        
+        return Response({
+            'message': 'Role deleted successfully.',
+            'status': 'success'
+        })
+        
+    except UserRole.DoesNotExist:
+        return Response({
+            'detail': 'Role not found.',
+            'status': 'error'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Error in admin_delete_role: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while deleting the role.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Permission Settings Endpoint
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_get_permissions(request):
+    """Get all system permissions (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        # Define system permissions
+        permissions = [
+            {
+                'id': 'can_provide_expert_feedback',
+                'name': 'Provide Expert Feedback',
+                'description': 'Ability to provide expert feedback on fingerprint analyses',
+                'category': 'Analysis'
+            },
+            {
+                'id': 'can_manage_users',
+                'name': 'Manage Users',
+                'description': 'Ability to create, edit, and delete user accounts',
+                'category': 'User Management'
+            },
+            {
+                'id': 'can_access_analytics',
+                'name': 'Access Analytics',
+                'description': 'Ability to view system analytics and reports',
+                'category': 'Analytics'
+            }
+        ]
+        
+        # Get role-permission mappings
+        roles = UserRole.objects.all()
+        role_permissions = {}
+        
+        for role in roles:
+            role_permissions[role.role_name] = {
+                'can_provide_expert_feedback': role.can_provide_expert_feedback,
+                'can_manage_users': role.can_manage_users,
+                'can_access_analytics': role.can_access_analytics,
+            }
+        
+        return Response({
+            'permissions': permissions,
+            'role_permissions': role_permissions
+        })
+        
+    except Exception as e:
+        print(f"Error in admin_get_permissions: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while fetching permissions.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# User Groups Endpoints
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_get_user_groups(request):
+    """Get user groups statistics (admin only)"""
+    user = request.user
+    
+    # Check if user is admin
+    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+        return Response({
+            'detail': 'Permission denied. Admin access required.',
+            'status': 'error'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        # Group users by different criteria
+        groups = []
+        
+        # Group by role
+        roles = UserRole.objects.all()
+        for role in roles:
+            users_in_role = UserProfile.objects.filter(role=role)
+            if users_in_role.exists():
+                groups.append({
+                    'id': f'role_{role.id}',
+                    'name': f'{role.role_name} Users',
+                    'type': 'role',
+                    'description': f'Users with {role.role_name} role',
+                    'user_count': users_in_role.count(),
+                    'users': [
+                        {
+                            'id': profile.user.id,
+                            'username': profile.user.username,
+                            'email': profile.user.email,
+                            'full_name': f"{profile.first_name} {profile.last_name}".strip() or profile.user.username
+                        }
+                        for profile in users_in_role.select_related('user')
+                    ]
+                })
+        
+        # Group by status
+        active_users = UserProfile.objects.filter(is_active=True, user__is_active=True)
+        inactive_users = UserProfile.objects.filter(is_active=False)
+        
+        if active_users.exists():
+            groups.append({
+                'id': 'status_active',
+                'name': 'Active Users',
+                'type': 'status',
+                'description': 'Users with active accounts',
+                'user_count': active_users.count(),
+                'users': [
+                    {
+                        'id': profile.user.id,
+                        'username': profile.user.username,
+                        'email': profile.user.email,
+                        'full_name': f"{profile.first_name} {profile.last_name}".strip() or profile.user.username
+                    }
+                    for profile in active_users.select_related('user')
+                ]
+            })
+        
+        if inactive_users.exists():
+            groups.append({
+                'id': 'status_inactive',
+                'name': 'Inactive Users',
+                'type': 'status',
+                'description': 'Users with inactive accounts',
+                'user_count': inactive_users.count(),
+                'users': [
+                    {
+                        'id': profile.user.id,
+                        'username': profile.user.username,
+                        'email': profile.user.email,
+                        'full_name': f"{profile.first_name} {profile.last_name}".strip() or profile.user.username
+                    }
+                    for profile in inactive_users.select_related('user')
+                ]
+            })
+        
+        return Response({
+            'groups': groups,
+            'total_groups': len(groups)
+        })
+        
+    except Exception as e:
+        print(f"Error in admin_get_user_groups: {str(e)}")
+        return Response({
+            'detail': 'An error occurred while fetching user groups.',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
