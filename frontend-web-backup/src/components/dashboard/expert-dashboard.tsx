@@ -280,33 +280,13 @@ const ExpertDashboard: React.FC = () => {
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
             ) : (
-              <ChartContainer className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart>
-                    <Tooltip
-                      cursor={false}
-                      contentStyle={{ 
-                        background: 'hsl(var(--background))', 
-                        border: '1px solid hsl(var(--border))', 
-                        borderRadius: 'var(--radius)' 
-                      }}
-                    />
-                    <Pie
-                      data={analysisTypeData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {analysisTypeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <div className="h-64 flex items-center justify-center text-center">
+                <div>
+                  <PieChart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-2">No analysis data available</p>
+                  <p className="text-sm text-muted-foreground">Expert review system will show analysis distribution here</p>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -356,19 +336,13 @@ const ExpertDashboard: React.FC = () => {
           {isLoading ? (
             <Skeleton className="h-64 w-full" />
           ) : (
-            <ChartContainer className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsBarChart data={performanceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Bar yAxisId="left" dataKey="completed" fill="#8884d8" name="Completed Cases" />
-                  <Bar yAxisId="right" dataKey="accuracy" fill="#82ca9d" name="Accuracy %" />
-                </RechartsBarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            <div className="h-64 flex items-center justify-center text-center">
+              <div>
+                <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-2">No performance data available</p>
+                <p className="text-sm text-muted-foreground">Performance trends will appear here when you complete expert reviews</p>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

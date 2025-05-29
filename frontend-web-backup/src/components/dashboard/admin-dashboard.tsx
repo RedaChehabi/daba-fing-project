@@ -346,45 +346,13 @@ const AdminDashboard = () => {
             {loading ? (
               <Skeleton className="h-[300px] w-full" />
             ) : (
-              <ChartContainer
-                className="h-[300px]"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={userRolesData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="role" tickLine={false} axisLine={false} />
-                    <YAxis tickLine={false} axisLine={false} width={40} />
-                    <Tooltip
-                      cursor={{ fill: 'hsl(var(--muted))', opacity: 0.5 }}
-                      content={({ active, payload, label }) =>
-                        active && payload && payload.length ? (
-                          <div className="rounded-lg border bg-background p-2 shadow-sm">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="flex flex-col">
-                                <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                  Role
-                                </span>
-                                <span className="font-bold text-muted-foreground">
-                                  {label}
-                                </span>
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                  Count
-                                </span>
-                                <span className="font-bold">
-                                  {payload[0]?.value}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ) : null
-                      }
-                    />
-                    <Bar dataKey="count" fill="var(--color-count)" radius={4} />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <div className="h-[300px] flex items-center justify-center text-center">
+                <div>
+                  <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-2">No user distribution data available</p>
+                  <p className="text-sm text-muted-foreground">User role analytics will appear here when analytics system is fully implemented</p>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -448,51 +416,13 @@ const AdminDashboard = () => {
             {loading ? (
               <Skeleton className="h-[250px] w-full" />
             ) : (
-              <ChartContainer
-                className="h-[250px]"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={systemMetricsData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tickLine={false} axisLine={false} />
-                    <YAxis tickLine={false} axisLine={false} width={40} />
-                    <Tooltip
-                      content={({ active, payload, label }) =>
-                        active && payload && payload.length ? (
-                          <div className="rounded-lg border bg-background p-2 shadow-sm">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="flex flex-col">
-                                <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                  Day
-                                </span>
-                                <span className="font-bold text-muted-foreground">
-                                  {label}
-                                </span>
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                  Performance
-                                </span>
-                                <span className="font-bold">
-                                  {payload[0]?.value}%
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ) : null
-                      }
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="var(--color-value)" 
-                      strokeWidth={2}
-                      dot={{ fill: "var(--color-value)", strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: "var(--color-value)", strokeWidth: 2 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <div className="h-[250px] flex items-center justify-center text-center">
+                <div>
+                  <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-2">No system performance data available</p>
+                  <p className="text-sm text-muted-foreground">System metrics will appear here when monitoring system is implemented</p>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -543,7 +473,8 @@ const AdminDashboard = () => {
             ) : (
               <div className="text-center py-6">
                 <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No recent activity</p>
+                <p className="text-sm text-muted-foreground">No recent activity data available</p>
+                <p className="text-xs text-muted-foreground">Activity feed will appear here when activity tracking is implemented</p>
               </div>
             )}
           </CardContent>
