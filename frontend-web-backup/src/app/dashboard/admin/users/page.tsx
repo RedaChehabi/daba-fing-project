@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,90 +44,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { adminService } from "@/services/api"
 
-// Mock data for users
-const mockUsers = [
-  {
-    id: "USR-001",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    role: "admin",
-    status: "active",
-    lastActive: "2 minutes ago",
-    joinDate: "Jan 15, 2023",
-    analyses: 127,
-  },
-  {
-    id: "USR-002",
-    name: "Jane Smith",
-    email: "jane.smith@example.com",
-    role: "expert",
-    status: "active",
-    lastActive: "1 hour ago",
-    joinDate: "Feb 3, 2023",
-    analyses: 98,
-  },
-  {
-    id: "USR-003",
-    name: "Robert Johnson",
-    email: "robert.johnson@example.com",
-    role: "user",
-    status: "active",
-    lastActive: "3 hours ago",
-    joinDate: "Mar 12, 2023",
-    analyses: 45,
-  },
-  {
-    id: "USR-004",
-    name: "Emily Davis",
-    email: "emily.davis@example.com",
-    role: "expert",
-    status: "inactive",
-    lastActive: "2 days ago",
-    joinDate: "Apr 5, 2023",
-    analyses: 72,
-  },
-  {
-    id: "USR-005",
-    name: "Michael Wilson",
-    email: "michael.wilson@example.com",
-    role: "user",
-    status: "pending",
-    lastActive: "Never",
-    joinDate: "May 20, 2023",
-    analyses: 0,
-  },
-  {
-    id: "USR-006",
-    name: "Sarah Brown",
-    email: "sarah.brown@example.com",
-    role: "user",
-    status: "active",
-    lastActive: "5 hours ago",
-    joinDate: "Jun 8, 2023",
-    analyses: 31,
-  },
-  {
-    id: "USR-007",
-    name: "David Miller",
-    email: "david.miller@example.com",
-    role: "user",
-    status: "active",
-    lastActive: "1 day ago",
-    joinDate: "Jul 17, 2023",
-    analyses: 24,
-  },
-  {
-    id: "USR-008",
-    name: "Lisa Taylor",
-    email: "lisa.taylor@example.com",
-    role: "expert",
-    status: "active",
-    lastActive: "4 hours ago",
-    joinDate: "Aug 22, 2023",
-    analyses: 86,
-  },
-]
+// Types for user data from API
+interface ApiUser {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  role: string;
+  status: string;
+  last_active: string;
+  join_date: string;
+  analyses: number;
+  date_joined: string;
+  is_staff: boolean;
+  is_superuser: boolean;
+}
 
 // Animation variants
 const containerVariants = {
@@ -146,19 +81,48 @@ const itemVariants = {
 }
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<ApiUser[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedRole, setSelectedRole] = useState("all")
   const [selectedStatus, setSelectedStatus] = useState("all")
-  const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [selectedItems, setSelectedItems] = useState<number[]>([])
   const [activeTab, setActiveTab] = useState("all-users")
   const [isAddUserOpen, setIsAddUserOpen] = useState(false)
+  const [newUserForm, setNewUserForm] = useState({
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+    password: "",
+    role: "Regular"
+  })
 
-  const filteredUsers = mockUsers.filter((user) => {
+  // Load users on component mount
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true)
+      const response = await adminService.listUsers()
+      setUsers(response.users)
+    } catch (error: unknown) {
+      console.error('Error loading users:', error)
+      // Simple error handling without toast for now
+      alert('Failed to load users. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filteredUsers = users.filter((user) => {
     // Filter by search query
     const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.id.toLowerCase().includes(searchQuery.toLowerCase())
+      user.id.toString().includes(searchQuery.toLowerCase())
 
     // Filter by role
     const matchesRole = selectedRole === "all" || user.role === selectedRole
@@ -169,7 +133,7 @@ export default function UsersPage() {
     return matchesSearch && matchesRole && matchesStatus
   })
 
-  const handleSelectItem = (id: string) => {
+  const handleSelectItem = (id: number) => {
     setSelectedItems((prev) => {
       if (prev.includes(id)) {
         return prev.filter((item) => item !== id)
@@ -180,21 +144,23 @@ export default function UsersPage() {
   }
 
   const handleSelectAll = () => {
-    if (selectedItems.length === filteredUsers.length) {
+    if (selectedItems.length === users.length) {
       setSelectedItems([])
     } else {
-      setSelectedItems(filteredUsers.map((user) => user.id))
+      setSelectedItems(users.map((user) => user.id))
     }
   }
 
   const getRoleBadge = (role: string) => {
-    switch (role) {
+    switch (role.toLowerCase()) {
       case "admin":
         return <Badge className="bg-primary text-primary-foreground hover:bg-primary/90">Admin</Badge>
       case "expert":
         return <Badge className="bg-blue-500 text-white hover:bg-blue-600">Expert</Badge>
+      case "regular":
+        return <Badge variant="outline">Regular</Badge>
       default:
-        return <Badge variant="outline">User</Badge>
+        return <Badge variant="outline">{role}</Badge>
     }
   }
 
@@ -209,6 +175,133 @@ export default function UsersPage() {
       default:
         return <Badge variant="outline">{status}</Badge>
     }
+  }
+
+  // Handler functions for user actions
+  const handleViewUser = (user: ApiUser) => {
+    // TODO: Implement view user details
+    alert(`Viewing user: ${user.full_name}`)
+  }
+
+  const handleEditUser = (user: ApiUser) => {
+    // TODO: Implement edit user
+    alert(`Editing user: ${user.full_name}`)
+  }
+
+  const handleDeleteUser = async (user: ApiUser) => {
+    if (confirm(`Are you sure you want to delete user ${user.full_name}?`)) {
+      try {
+        await adminService.deleteUser(user.id)
+        alert('User deleted successfully')
+        loadUsers() // Reload the users list
+      } catch (error) {
+        console.error('Error deleting user:', error)
+        alert('Failed to delete user')
+      }
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedItems.length === 0) return
+    
+    if (confirm(`Are you sure you want to delete ${selectedItems.length} selected users?`)) {
+      try {
+        await adminService.bulkDeleteUsers(selectedItems)
+        alert(`${selectedItems.length} users deleted successfully`)
+        setSelectedItems([])
+        loadUsers() // Reload the users list
+      } catch (error) {
+        console.error('Error deleting users:', error)
+        alert('Failed to delete users')
+      }
+    }
+  }
+
+  const handleCreateUser = async (userData: {
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    password: string;
+    role: string;
+  }) => {
+    try {
+      await adminService.createUser(userData)
+      alert('User created successfully')
+      setIsAddUserOpen(false)
+      loadUsers() // Reload the users list
+    } catch (error) {
+      console.error('Error creating user:', error)
+      alert('Failed to create user')
+    }
+  }
+
+  const handleCreateUserSubmit = async () => {
+    if (!newUserForm.username || !newUserForm.email || !newUserForm.password) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    try {
+      await handleCreateUser(newUserForm)
+      setNewUserForm({
+        username: "",
+        email: "",
+        first_name: "",
+        last_name: "",
+        password: "",
+        role: "Regular"
+      })
+    } catch (error) {
+      console.error('Error creating user:', error)
+    }
+  }
+
+  const handleExportUsers = async () => {
+    try {
+      const response = await adminService.listUsers()
+      // Convert to CSV format
+      const csvContent = [
+        ['ID', 'Username', 'Email', 'Name', 'Role', 'Status', 'Join Date', 'Analyses'].join(','),
+        ...response.users.map(user => [
+          user.id,
+          user.username,
+          user.email,
+          user.full_name,
+          user.role,
+          user.status,
+          user.join_date,
+          user.analyses
+        ].join(','))
+      ].join('\n')
+      
+      // Download the CSV
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'users.csv'
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error exporting users:', error)
+      alert('Failed to export users')
+    }
+  }
+
+  // Calculate user statistics
+  const userStats = {
+    byRole: {
+      admin: users.filter(user => user.role.toLowerCase() === 'admin').length,
+      expert: users.filter(user => user.role.toLowerCase() === 'expert').length,
+      regular: users.filter(user => user.role.toLowerCase() === 'regular').length,
+    },
+    byStatus: {
+      active: users.filter(user => user.status === 'active').length,
+      inactive: users.filter(user => user.status === 'inactive').length,
+      pending: users.filter(user => user.status === 'pending').length,
+    },
+    total: users.length
   }
 
   return (
@@ -226,7 +319,7 @@ export default function UsersPage() {
             <UserPlus className="h-4 w-4" />
             Add User
           </Button>
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleExportUsers}>
             <Download className="h-4 w-4" />
             Export
           </Button>
@@ -302,7 +395,7 @@ export default function UsersPage() {
                                 <SelectItem value="all">All Roles</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
                                 <SelectItem value="expert">Expert</SelectItem>
-                                <SelectItem value="user">User</SelectItem>
+                                <SelectItem value="regular">Regular</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -323,7 +416,7 @@ export default function UsersPage() {
                         </div>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    <Button variant="outline" size="sm" className="h-9 gap-1" disabled={selectedItems.length === 0}>
+                    <Button variant="outline" size="sm" className="h-9 gap-1" disabled={selectedItems.length === 0} onClick={handleBulkDelete}>
                       <Trash2 className="h-4 w-4" />
                       <span>Delete</span>
                     </Button>
@@ -337,7 +430,7 @@ export default function UsersPage() {
                       <TableRow>
                         <TableHead className="w-[40px]">
                           <Checkbox
-                            checked={selectedItems.length === filteredUsers.length && filteredUsers.length > 0}
+                            checked={selectedItems.length === users.length && users.length > 0}
                             onCheckedChange={handleSelectAll}
                             aria-label="Select all"
                           />
@@ -352,7 +445,13 @@ export default function UsersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredUsers.length === 0 ? (
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-24 text-center">
+                            Loading users...
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredUsers.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={8} className="h-24 text-center">
                             No users found.
@@ -365,42 +464,42 @@ export default function UsersPage() {
                               <Checkbox
                                 checked={selectedItems.includes(user.id)}
                                 onCheckedChange={() => handleSelectItem(user.id)}
-                                aria-label={`Select ${user.name}`}
+                                aria-label={`Select ${user.full_name}`}
                               />
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={`/placeholder.svg?height=32&width=32`} alt={user.name} />
+                                  <AvatarImage src={`/placeholder.svg?height=32&width=32`} alt={user.full_name} />
                                   <AvatarFallback>
-                                    {user.name
+                                    {user.full_name
                                       .split(" ")
                                       .map((n) => n[0])
                                       .join("")}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <div className="font-medium">{user.name}</div>
+                                  <div className="font-medium">{user.full_name}</div>
                                   <div className="text-xs text-muted-foreground">{user.email}</div>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>{getRoleBadge(user.role)}</TableCell>
                             <TableCell>{getStatusBadge(user.status)}</TableCell>
-                            <TableCell>{user.lastActive}</TableCell>
-                            <TableCell>{user.joinDate}</TableCell>
+                            <TableCell>{user.last_active}</TableCell>
+                            <TableCell>{user.join_date}</TableCell>
                             <TableCell>{user.analyses}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewUser(user)}>
                                   <Eye className="h-4 w-4" />
                                   <span className="sr-only">View</span>
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditUser(user)}>
                                   <Edit className="h-4 w-4" />
                                   <span className="sr-only">Edit</span>
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteUser(user)}>
                                   <Trash2 className="h-4 w-4" />
                                   <span className="sr-only">Delete</span>
                                 </Button>
@@ -415,7 +514,7 @@ export default function UsersPage() {
 
                 <div className="flex items-center justify-between mt-4">
                   <div className="text-sm text-muted-foreground">
-                    Showing <strong>{filteredUsers.length}</strong> of <strong>{mockUsers.length}</strong> users
+                    Showing <strong>{filteredUsers.length}</strong> of <strong>{users.length}</strong> users
                   </div>
                   <Pagination>
                     <PaginationContent>
@@ -465,30 +564,30 @@ export default function UsersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mockUsers
+                      {users
                         .filter((user) => user.role === "admin")
                         .map((user) => (
                           <TableRow key={user.id}>
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={`/placeholder.svg?height=32&width=32`} alt={user.name} />
+                                  <AvatarImage src={`/placeholder.svg?height=32&width=32`} alt={user.full_name} />
                                   <AvatarFallback>
-                                    {user.name
+                                    {user.full_name
                                       .split(" ")
                                       .map((n) => n[0])
                                       .join("")}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <div className="font-medium">{user.name}</div>
+                                  <div className="font-medium">{user.full_name}</div>
                                   <div className="text-xs text-muted-foreground">{user.email}</div>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>{getStatusBadge(user.status)}</TableCell>
-                            <TableCell>{user.lastActive}</TableCell>
-                            <TableCell>{user.joinDate}</TableCell>
+                            <TableCell>{user.last_active}</TableCell>
+                            <TableCell>{user.join_date}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
                                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -530,30 +629,30 @@ export default function UsersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mockUsers
+                      {users
                         .filter((user) => user.role === "expert")
                         .map((user) => (
                           <TableRow key={user.id}>
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={`/placeholder.svg?height=32&width=32`} alt={user.name} />
+                                  <AvatarImage src={`/placeholder.svg?height=32&width=32`} alt={user.full_name} />
                                   <AvatarFallback>
-                                    {user.name
+                                    {user.full_name
                                       .split(" ")
                                       .map((n) => n[0])
                                       .join("")}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <div className="font-medium">{user.name}</div>
+                                  <div className="font-medium">{user.full_name}</div>
                                   <div className="text-xs text-muted-foreground">{user.email}</div>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>{getStatusBadge(user.status)}</TableCell>
-                            <TableCell>{user.lastActive}</TableCell>
-                            <TableCell>{user.joinDate}</TableCell>
+                            <TableCell>{user.last_active}</TableCell>
+                            <TableCell>{user.join_date}</TableCell>
                             <TableCell>{user.analyses}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
@@ -600,30 +699,30 @@ export default function UsersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mockUsers
-                        .filter((user) => user.role === "user")
+                      {users
+                        .filter((user) => user.role === "regular")
                         .map((user) => (
                           <TableRow key={user.id}>
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <Avatar className="h-8 w-8">
-                                  <AvatarImage src={`/placeholder.svg?height=32&width=32`} alt={user.name} />
+                                  <AvatarImage src={`/placeholder.svg?height=32&width=32`} alt={user.full_name} />
                                   <AvatarFallback>
-                                    {user.name
+                                    {user.full_name
                                       .split(" ")
                                       .map((n) => n[0])
                                       .join("")}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <div className="font-medium">{user.name}</div>
+                                  <div className="font-medium">{user.full_name}</div>
                                   <div className="text-xs text-muted-foreground">{user.email}</div>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>{getStatusBadge(user.status)}</TableCell>
-                            <TableCell>{user.lastActive}</TableCell>
-                            <TableCell>{user.joinDate}</TableCell>
+                            <TableCell>{user.last_active}</TableCell>
+                            <TableCell>{user.join_date}</TableCell>
                             <TableCell>{user.analyses}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
@@ -677,10 +776,10 @@ export default function UsersPage() {
                       <div className="h-3 w-3 rounded-full bg-primary"></div>
                       <span className="text-sm">Admin</span>
                     </div>
-                    <span className="text-sm font-bold">1</span>
+                    <span className="text-sm font-bold">{userStats.byRole.admin}</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: "12.5%" }}></div>
+                    <div className="h-full bg-primary" style={{ width: `${(userStats.byRole.admin / userStats.total) * 100}%` }}></div>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -689,22 +788,22 @@ export default function UsersPage() {
                       <div className="h-3 w-3 rounded-full bg-blue-500"></div>
                       <span className="text-sm">Expert</span>
                     </div>
-                    <span className="text-sm font-bold">3</span>
+                    <span className="text-sm font-bold">{userStats.byRole.expert}</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-blue-500" style={{ width: "37.5%" }}></div>
+                    <div className="h-full bg-blue-500" style={{ width: `${(userStats.byRole.expert / userStats.total) * 100}%` }}></div>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="h-3 w-3 rounded-full bg-gray-400"></div>
-                      <span className="text-sm">User</span>
+                      <span className="text-sm">Regular</span>
                     </div>
-                    <span className="text-sm font-bold">4</span>
+                    <span className="text-sm font-bold">{userStats.byRole.regular}</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-gray-400" style={{ width: "50%" }}></div>
+                    <div className="h-full bg-gray-400" style={{ width: `${(userStats.byRole.regular / userStats.total) * 100}%` }}></div>
                   </div>
                 </div>
               </div>
@@ -725,10 +824,10 @@ export default function UsersPage() {
                       <div className="h-3 w-3 rounded-full bg-green-500"></div>
                       <span className="text-sm">Active</span>
                     </div>
-                    <span className="text-sm font-bold">6</span>
+                    <span className="text-sm font-bold">{userStats.byStatus.active}</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-green-500" style={{ width: "75%" }}></div>
+                    <div className="h-full bg-green-500" style={{ width: `${(userStats.byStatus.active / userStats.total) * 100}%` }}></div>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -737,10 +836,10 @@ export default function UsersPage() {
                       <div className="h-3 w-3 rounded-full bg-gray-400"></div>
                       <span className="text-sm">Inactive</span>
                     </div>
-                    <span className="text-sm font-bold">1</span>
+                    <span className="text-sm font-bold">{userStats.byStatus.inactive}</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-gray-400" style={{ width: "12.5%" }}></div>
+                    <div className="h-full bg-gray-400" style={{ width: `${(userStats.byStatus.inactive / userStats.total) * 100}%` }}></div>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -749,10 +848,10 @@ export default function UsersPage() {
                       <div className="h-3 w-3 rounded-full bg-amber-500"></div>
                       <span className="text-sm">Pending</span>
                     </div>
-                    <span className="text-sm font-bold">1</span>
+                    <span className="text-sm font-bold">{userStats.byStatus.pending}</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-amber-500" style={{ width: "12.5%" }}></div>
+                    <div className="h-full bg-amber-500" style={{ width: `${(userStats.byStatus.pending / userStats.total) * 100}%` }}></div>
                   </div>
                 </div>
               </div>
@@ -768,15 +867,15 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                  <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={() => window.location.href = '/dashboard/admin/roles'}>
                     <User className="h-4 w-4" />
                     Manage Roles
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                  <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={() => window.location.href = '/dashboard/admin/permissions'}>
                     <Shield className="h-4 w-4" />
                     Permission Settings
                   </Button>
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                  <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={() => window.location.href = '/dashboard/admin/user-groups'}>
                     <Users className="h-4 w-4" />
                     User Groups
                   </Button>
@@ -798,29 +897,79 @@ export default function UsersPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
+              <Label htmlFor="username" className="text-right">
+                Username *
               </Label>
-              <Input id="name" placeholder="Full name" className="col-span-3" />
+              <Input 
+                id="username" 
+                placeholder="Username" 
+                className="col-span-3" 
+                value={newUserForm.username}
+                onChange={(e) => setNewUserForm(prev => ({ ...prev, username: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="first_name" className="text-right">
+                First Name
+              </Label>
+              <Input 
+                id="first_name" 
+                placeholder="First name" 
+                className="col-span-3" 
+                value={newUserForm.first_name}
+                onChange={(e) => setNewUserForm(prev => ({ ...prev, first_name: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="last_name" className="text-right">
+                Last Name
+              </Label>
+              <Input 
+                id="last_name" 
+                placeholder="Last name" 
+                className="col-span-3" 
+                value={newUserForm.last_name}
+                onChange={(e) => setNewUserForm(prev => ({ ...prev, last_name: e.target.value }))}
+              />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="email" className="text-right">
-                Email
+                Email *
               </Label>
-              <Input id="email" type="email" placeholder="Email address" className="col-span-3" />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="Email address" 
+                className="col-span-3" 
+                value={newUserForm.email}
+                onChange={(e) => setNewUserForm(prev => ({ ...prev, email: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="password" className="text-right">
+                Password *
+              </Label>
+              <Input 
+                id="password" 
+                type="password" 
+                placeholder="Password" 
+                className="col-span-3" 
+                value={newUserForm.password}
+                onChange={(e) => setNewUserForm(prev => ({ ...prev, password: e.target.value }))}
+              />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="role" className="text-right">
                 Role
               </Label>
-              <Select defaultValue="user">
+              <Select value={newUserForm.role} onValueChange={(value) => setNewUserForm(prev => ({ ...prev, role: value }))}>
                 <SelectTrigger id="role" className="col-span-3">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="expert">Expert</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Expert">Expert</SelectItem>
+                  <SelectItem value="Regular">Regular</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -829,7 +978,7 @@ export default function UsersPage() {
             <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" onClick={() => setIsAddUserOpen(false)}>
+            <Button type="submit" onClick={handleCreateUserSubmit}>
               Create User
             </Button>
           </DialogFooter>

@@ -156,29 +156,279 @@ export interface ExpertApplicationReview {
   review_notes?: string;
 }
 
+interface ExpertApplicationSubmitResponse {
+  detail: string;
+  status: string;
+  application_id?: number;
+}
+
+interface ExpertApplicationReviewResponse {
+  detail: string;
+  status: string;
+  message?: string;
+}
+
 // Expert Application API functions
 export const expertApplicationService = {
   // Submit expert application
-  submit: async (applicationData: ExpertApplicationSubmission): Promise<any> => {
-    const response = await api.post('/expert-application/submit/', applicationData);
+  submit: async (applicationData: ExpertApplicationSubmission): Promise<ExpertApplicationSubmitResponse> => {
+    const response = await api.post<ExpertApplicationSubmitResponse>('/expert-application/submit/', applicationData);
     return response.data;
   },
 
   // Get user's expert application status
   getStatus: async (): Promise<ExpertApplication> => {
-    const response = await api.get('/expert-application/status/');
+    const response = await api.get<ExpertApplication>('/expert-application/status/');
     return response.data;
   },
 
   // Get all expert applications (admin only)
   getAll: async (): Promise<{ applications: ExpertApplication[]; total_count: number }> => {
-    const response = await api.get('/expert-applications/');
+    const response = await api.get<{ applications: ExpertApplication[]; total_count: number }>('/expert-applications/');
     return response.data;
   },
 
   // Review expert application (admin only)
-  review: async (applicationId: number, reviewData: ExpertApplicationReview): Promise<any> => {
-    const response = await api.post(`/expert-application/${applicationId}/review/`, reviewData);
+  review: async (applicationId: number, reviewData: ExpertApplicationReview): Promise<ExpertApplicationReviewResponse> => {
+    const response = await api.post<ExpertApplicationReviewResponse>(`/expert-application/${applicationId}/review/`, reviewData);
+    return response.data;
+  },
+};
+
+// Define interfaces for user management
+interface UserListResponse {
+  users: {
+    id: number;
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    full_name: string;
+    role: string;
+    status: string;
+    last_active: string;
+    join_date: string;
+    analyses: number;
+    date_joined: string;
+    is_staff: boolean;
+    is_superuser: boolean;
+  }[];
+  total_count: number;
+}
+
+interface CreateUserResponse {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  message: string;
+}
+
+interface UserDetailResponse {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  is_active: boolean;
+  date_joined: string;
+  last_login: string | null;
+  analyses_count: number;
+  is_staff: boolean;
+  is_superuser: boolean;
+}
+
+interface UpdateUserResponse {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  message: string;
+}
+
+interface DeleteUserResponse {
+  message: string;
+  status: string;
+}
+
+interface BulkDeleteResponse {
+  message: string;
+  deleted_count: number;
+  status: string;
+}
+
+// User Management (Admin only)
+export const adminService = {
+  listUsers: async (): Promise<UserListResponse> => {
+    const response = await api.get<UserListResponse>('/admin/users/');
+    return response.data;
+  },
+
+  createUser: async (userData: {
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    password: string;
+    role: string;
+  }): Promise<CreateUserResponse> => {
+    const response = await api.post<CreateUserResponse>('/admin/users/create/', userData);
+    return response.data;
+  },
+
+  getUser: async (userId: number): Promise<UserDetailResponse> => {
+    const response = await api.get<UserDetailResponse>(`/admin/users/${userId}/`);
+    return response.data;
+  },
+
+  updateUser: async (userId: number, userData: {
+    username?: string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    role?: string;
+    is_active?: boolean;
+  }): Promise<UpdateUserResponse> => {
+    const response = await api.put<UpdateUserResponse>(`/admin/users/${userId}/update/`, userData);
+    return response.data;
+  },
+
+  deleteUser: async (userId: number): Promise<DeleteUserResponse> => {
+    const response = await api.delete<DeleteUserResponse>(`/admin/users/${userId}/delete/`);
+    return response.data;
+  },
+
+  bulkDeleteUsers: async (userIds: number[]): Promise<BulkDeleteResponse> => {
+    const response = await api.post<BulkDeleteResponse>('/admin/users/bulk-delete/', { user_ids: userIds });
+    return response.data;
+  },
+
+  exportUsers: async (): Promise<UserListResponse> => {
+    // This would need to be implemented on the backend if needed
+    const response = await api.get<UserListResponse>('/admin/users/', { 
+      params: { format: 'csv' } 
+    });
+    return response.data;
+  },
+};
+
+// Role Management interfaces and services
+interface Role {
+  id: number;
+  role_name: string;
+  description: string;
+  access_level: number;
+  can_provide_expert_feedback: boolean;
+  can_manage_users: boolean;
+  can_access_analytics: boolean;
+  user_count: number;
+}
+
+interface RoleListResponse {
+  roles: Role[];
+  total_count: number;
+}
+
+interface CreateRoleResponse {
+  id: number;
+  role_name: string;
+  description: string;
+  message: string;
+}
+
+interface UpdateRoleResponse {
+  id: number;
+  role_name: string;
+  description: string;
+  message: string;
+}
+
+interface Permission {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+}
+
+interface PermissionsResponse {
+  permissions: Permission[];
+  role_permissions: {
+    [roleName: string]: {
+      can_provide_expert_feedback: boolean;
+      can_manage_users: boolean;
+      can_access_analytics: boolean;
+    };
+  };
+}
+
+interface UserGroup {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  user_count: number;
+  users: {
+    id: number;
+    username: string;
+    email: string;
+    full_name: string;
+  }[];
+}
+
+interface UserGroupsResponse {
+  groups: UserGroup[];
+  total_groups: number;
+}
+
+// Role Management API
+export const roleService = {
+  listRoles: async (): Promise<RoleListResponse> => {
+    const response = await api.get<RoleListResponse>('/admin/roles/');
+    return response.data;
+  },
+
+  createRole: async (roleData: {
+    role_name: string;
+    description: string;
+    access_level: number;
+    can_provide_expert_feedback: boolean;
+    can_manage_users: boolean;
+    can_access_analytics: boolean;
+  }): Promise<CreateRoleResponse> => {
+    const response = await api.post<CreateRoleResponse>('/admin/roles/create/', roleData);
+    return response.data;
+  },
+
+  updateRole: async (roleId: number, roleData: {
+    description?: string;
+    access_level?: number;
+    can_provide_expert_feedback?: boolean;
+    can_manage_users?: boolean;
+    can_access_analytics?: boolean;
+  }): Promise<UpdateRoleResponse> => {
+    const response = await api.put<UpdateRoleResponse>(`/admin/roles/${roleId}/update/`, roleData);
+    return response.data;
+  },
+
+  deleteRole: async (roleId: number): Promise<{ message: string; status: string }> => {
+    const response = await api.delete<{ message: string; status: string }>(`/admin/roles/${roleId}/delete/`);
+    return response.data;
+  },
+};
+
+// Permission Management API
+export const permissionService = {
+  getPermissions: async (): Promise<PermissionsResponse> => {
+    const response = await api.get<PermissionsResponse>('/admin/permissions/');
+    return response.data;
+  },
+};
+
+// User Groups API
+export const userGroupService = {
+  getUserGroups: async (): Promise<UserGroupsResponse> => {
+    const response = await api.get<UserGroupsResponse>('/admin/user-groups/');
     return response.data;
   },
 };
