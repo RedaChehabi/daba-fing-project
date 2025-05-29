@@ -243,6 +243,50 @@ class ApiService {
       throw new Error(`Failed to load analysis history: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  // Dashboard stats method to match other frontends
+  async getDashboardStats(): Promise<any> {
+    try {
+      const token = await this.getAuthToken();
+      if (!token) throw new Error('No auth token');
+
+      const response = await fetch(`${API_BASE_URL}/dashboard/stats/`, {
+        headers: { 'Authorization': `Token ${token}` },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to get dashboard stats`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting dashboard stats:', error);
+      throw error;
+    }
+  }
+
+  // Analytics data method for admin users
+  async getAnalyticsData(): Promise<any> {
+    try {
+      const token = await this.getAuthToken();
+      if (!token) throw new Error('No auth token');
+
+      const response = await fetch(`${API_BASE_URL}/admin/analytics/`, {
+        headers: { 'Authorization': `Token ${token}` },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to get analytics data`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting analytics data:', error);
+      throw error;
+    }
+  }
 }
 
 export const authService = new ApiService();
