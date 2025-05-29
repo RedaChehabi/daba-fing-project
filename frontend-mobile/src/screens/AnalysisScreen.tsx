@@ -5,22 +5,33 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
-import { AnalysisResult } from '../types';
+
+interface AnalysisResult {
+  id: string;
+  fingerprint_id: string;
+  classification: string;
+  ridge_count: number;
+  confidence: number;
+  analysis_date: string;
+  status: string;
+  processing_time: string;
+}
 
 const AnalysisScreen = ({ navigation, route }: any) => {
   const { analysisId, analysisData } = route.params;
 
-  // Mock analysis data - replace with actual API call
-  const mockAnalysis: AnalysisResult = analysisData || {
+  // Use the passed analysis data or provide defaults
+  const analysis: AnalysisResult = analysisData || {
     id: analysisId,
-    fingerprint_id: 'fp_001',
-    classification: 'Loop',
-    ridge_count: 45,
-    confidence: 92.5,
+    fingerprint_id: analysisId,
+    classification: 'Unknown',
+    ridge_count: 0,
+    confidence: 0,
     analysis_date: new Date().toISOString(),
     status: 'completed',
-    processing_time: '2.3s',
+    processing_time: '0s',
   };
 
   const formatDate = (dateString: string) => {
@@ -37,18 +48,40 @@ const AnalysisScreen = ({ navigation, route }: any) => {
     return '#F44336';
   };
 
+  const handleExportResults = () => {
+    Alert.alert(
+      'Export Results',
+      'Analysis results will be exported to your device.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Export', onPress: () => console.log('Exporting results...') }
+      ]
+    );
+  };
+
+  const handleShareAnalysis = () => {
+    Alert.alert(
+      'Share Analysis',
+      'Share analysis results with others.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Share', onPress: () => console.log('Sharing analysis...') }
+      ]
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Analysis Results</Text>
-        <Text style={styles.subtitle}>Fingerprint {mockAnalysis.fingerprint_id}</Text>
+        <Text style={styles.subtitle}>Analysis {analysis.id}</Text>
       </View>
 
       <View style={styles.content}>
         {/* Classification Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Pattern Classification</Text>
-          <Text style={styles.classificationValue}>{mockAnalysis.classification}</Text>
+          <Text style={styles.classificationValue}>{analysis.classification}</Text>
           <Text style={styles.cardSubtitle}>Primary pattern type detected</Text>
         </View>
 
@@ -56,16 +89,16 @@ const AnalysisScreen = ({ navigation, route }: any) => {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Confidence Score</Text>
           <View style={styles.confidenceContainer}>
-            <Text style={[styles.confidenceValue, { color: getConfidenceColor(mockAnalysis.confidence) }]}>
-              {mockAnalysis.confidence.toFixed(1)}%
+            <Text style={[styles.confidenceValue, { color: getConfidenceColor(analysis.confidence) }]}>
+              {analysis.confidence.toFixed(1)}%
             </Text>
             <View style={styles.confidenceBar}>
               <View 
                 style={[
                   styles.confidenceFill, 
                   { 
-                    width: `${mockAnalysis.confidence}%`,
-                    backgroundColor: getConfidenceColor(mockAnalysis.confidence)
+                    width: `${analysis.confidence}%`,
+                    backgroundColor: getConfidenceColor(analysis.confidence)
                   }
                 ]} 
               />
@@ -77,7 +110,7 @@ const AnalysisScreen = ({ navigation, route }: any) => {
         {/* Ridge Count Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Ridge Count</Text>
-          <Text style={styles.ridgeValue}>{mockAnalysis.ridge_count}</Text>
+          <Text style={styles.ridgeValue}>{analysis.ridge_count}</Text>
           <Text style={styles.cardSubtitle}>Total ridge lines detected</Text>
         </View>
 
@@ -86,16 +119,16 @@ const AnalysisScreen = ({ navigation, route }: any) => {
           <Text style={styles.cardTitle}>Technical Details</Text>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Analysis Date:</Text>
-            <Text style={styles.detailValue}>{formatDate(mockAnalysis.analysis_date)}</Text>
+            <Text style={styles.detailValue}>{formatDate(analysis.analysis_date)}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Processing Time:</Text>
-            <Text style={styles.detailValue}>{mockAnalysis.processing_time}</Text>
+            <Text style={styles.detailValue}>{analysis.processing_time}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Status:</Text>
             <Text style={[styles.detailValue, styles.statusCompleted]}>
-              {mockAnalysis.status.charAt(0).toUpperCase() + mockAnalysis.status.slice(1)}
+              {analysis.status.charAt(0).toUpperCase() + analysis.status.slice(1)}
             </Text>
           </View>
           <View style={styles.detailRow}>
@@ -129,11 +162,11 @@ const AnalysisScreen = ({ navigation, route }: any) => {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.secondaryButton}>
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleExportResults}>
             <Text style={styles.secondaryButtonText}>Export Results</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.primaryButton}>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleShareAnalysis}>
             <Text style={styles.primaryButtonText}>Share Analysis</Text>
           </TouchableOpacity>
         </View>

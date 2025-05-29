@@ -433,4 +433,86 @@ export const userGroupService = {
   },
 };
 
+// Analysis History interfaces
+interface AnalysisHistoryItem {
+  id: string;
+  date: string;
+  classification: string;
+  ridge_count: number;
+  confidence: number;
+  status: string;
+  image_id: number;
+  processing_time: string;
+}
+
+interface AnalysisHistoryResponse {
+  history: AnalysisHistoryItem[];
+  total_count: number;
+  status: string;
+}
+
+interface AnalysisDetail {
+  id: string;
+  type: string;
+  status: string;
+  upload_date: string;
+  analyzed_date: string;
+  user: string;
+  pattern: string;
+  pattern_subtype: string;
+  confidence_score: number;
+  minutiae_count: number;
+  notes: string;
+  image_url?: string;
+  processing_time: string;
+  analysis_results: Record<string, unknown>;
+}
+
+interface AnalysisDetailResponse {
+  analysis: AnalysisDetail;
+  status: string;
+}
+
+interface DeleteAnalysisResponse {
+  message: string;
+  status: string;
+}
+
+interface BulkDeleteAnalysisResponse {
+  message: string;
+  deleted_count: number;
+  status: string;
+}
+
+// Analysis History API
+export const analysisService = {
+  getUserHistory: async (): Promise<AnalysisHistoryResponse> => {
+    const response = await api.get<AnalysisHistoryResponse>('/user/analysis-history/');
+    return response.data;
+  },
+
+  getAnalysisDetail: async (analysisId: string): Promise<AnalysisDetailResponse> => {
+    const response = await api.get<AnalysisDetailResponse>(`/analysis/${analysisId}/`);
+    return response.data;
+  },
+
+  deleteAnalysis: async (analysisId: string): Promise<DeleteAnalysisResponse> => {
+    const response = await api.delete<DeleteAnalysisResponse>(`/analysis/${analysisId}/delete/`);
+    return response.data;
+  },
+
+  bulkDeleteAnalyses: async (analysisIds: string[]): Promise<BulkDeleteAnalysisResponse> => {
+    const response = await api.post<BulkDeleteAnalysisResponse>('/user/analysis/bulk-delete/', { 
+      analysis_ids: analysisIds 
+    });
+    return response.data;
+  },
+
+  exportHistory: async (): Promise<AnalysisHistoryResponse> => {
+    // For CSV export, we'll just get the data and format it client-side
+    const response = await api.get<AnalysisHistoryResponse>('/user/analysis-history/');
+    return response.data;
+  },
+};
+
 export default api;

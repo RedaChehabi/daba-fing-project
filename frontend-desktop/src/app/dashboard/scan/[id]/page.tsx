@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -5,40 +8,131 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Fingerprint, Download, Share2, ChevronLeft, Eye } from "lucide-react"
 import Link from "next/link"
+import { analysisService } from "@/services/api"
 
-// Mock data for a fingerprint scan
-const scanData = {
-  id: "FP-123",
-  type: "Right Index",
-  status: "Analyzed",
-  uploadDate: "Apr 5, 2023",
-  analyzedDate: "Apr 6, 2023",
-  user: "John Smith",
-  pattern: "Whorl",
-  patternSubtype: "Double Loop",
-  confidenceScore: 95,
-  minutiaeCount: 38,
-  notes: "Clear impression with well-defined ridges.",
+// Interface for analysis detail from API
+interface AnalysisDetail {
+  id: string;
+  type: string;
+  status: string;
+  upload_date: string;
+  analyzed_date: string;
+  user: string;
+  pattern: string;
+  pattern_subtype: string;
+  confidence_score: number;
+  minutiae_count: number;
+  notes: string;
+  image_url?: string;
+  processing_time: string;
+  analysis_results: Record<string, unknown>;
 }
 
 interface PageProps {
   params: Promise<{ id: string }>
 }
 
-export async function generateStaticParams() {
-  // For static export, we need to provide the possible id values
-  // In a real app, you would fetch this from your API
-  return [
-    { id: 'FP-123' },
-    { id: 'FP-124' },
-    { id: 'FP-125' },
-  ]
-}
+export default function ScanDetailPage({ params }: PageProps) {
+  const [analysisDetail, setAnalysisDetail] = useState<AnalysisDetail | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [scanId, setScanId] = useState<string>("")
 
-export default async function ScanDetailPage({ params }: PageProps) {
-  const { id } = await params
-  // In a real app, you would fetch scan data based on id
-  const scan = scanData
+  useEffect(() => {
+    const loadAnalysisDetail = async () => {
+      try {
+        const resolvedParams = await params
+        setScanId(resolvedParams.id)
+        setLoading(true)
+        const response = await analysisService.getAnalysisDetail(resolvedParams.id)
+        setAnalysisDetail(response.analysis)
+      } catch (error) {
+        console.error('Error loading analysis detail:', error)
+        alert('Failed to load analysis details. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadAnalysisDetail()
+  }, [params])
+
+  const handleDownload = async () => {
+    if (!analysisDetail) return
+    try {
+      // Create a detailed report
+      const reportContent = [
+        `Analysis Report - ${analysisDetail.id}`,
+        `===================================`,
+        `Type: ${analysisDetail.type}`,
+        `Status: ${analysisDetail.status}`,
+        `Upload Date: ${analysisDetail.upload_date}`,
+        `Analysis Date: ${analysisDetail.analyzed_date}`,
+        `Pattern: ${analysisDetail.pattern} (${analysisDetail.pattern_subtype})`,
+        `Confidence Score: ${analysisDetail.confidence_score}%`,
+        `Minutiae Count: ${analysisDetail.minutiae_count}`,
+        `Processing Time: ${analysisDetail.processing_time}`,
+        `Notes: ${analysisDetail.notes}`,
+        `===================================`,
+        `Generated on: ${new Date().toLocaleString()}`
+      ].join('\n')
+      
+      const blob = new Blob([reportContent], { type: 'text/plain' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `analysis_report_${analysisDetail.id}.txt`
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading report:', error)
+      alert('Failed to download report')
+    }
+  }
+
+  const handleShare = () => {
+    if (analysisDetail) {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        alert('Link copied to clipboard!')
+      }).catch(() => {
+        alert('Failed to copy link')
+      })
+    }
+  }
+
+  const handleViewFullSize = () => {
+    if (analysisDetail?.image_url) {
+      window.open(analysisDetail.image_url, '_blank')
+    } else {
+      alert('Image not available')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-lg">Loading analysis details...</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!analysisDetail) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-lg">Analysis not found</div>
+            <Link href="/dashboard/history" className="text-primary hover:underline">
+              Return to History
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -49,19 +143,19 @@ export default async function ScanDetailPage({ params }: PageProps) {
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Scan {scan.id}</h1>
-            <p className="text-muted-foreground">{scan.type} Fingerprint</p>
+            <h1 className="text-3xl font-bold">Scan {scanId}</h1>
+            <p className="text-muted-foreground">{analysisDetail.type} Fingerprint</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleDownload}>
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleShare}>
               <Share2 className="h-4 w-4 mr-2" />
               Share
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={handleViewFullSize}>
               <Eye className="h-4 w-4 mr-2" />
               View Full Size
             </Button>
@@ -88,9 +182,9 @@ export default async function ScanDetailPage({ params }: PageProps) {
           <CardHeader>
             <CardTitle>Scan Details</CardTitle>
             <div className="flex items-center pt-2">
-              <Badge>{scan.pattern}</Badge>
+              <Badge>{analysisDetail.pattern}</Badge>
               <Badge variant="outline" className="ml-2">
-                {scan.status}
+                {analysisDetail.status}
               </Badge>
             </div>
           </CardHeader>
@@ -98,19 +192,19 @@ export default async function ScanDetailPage({ params }: PageProps) {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Upload Date</p>
-                <p className="font-medium">{scan.uploadDate}</p>
+                <p className="font-medium">{analysisDetail.upload_date}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Analyzed Date</p>
-                <p className="font-medium">{scan.analyzedDate}</p>
+                <p className="font-medium">{analysisDetail.analyzed_date}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Uploaded By</p>
-                <p className="font-medium">{scan.user}</p>
+                <p className="font-medium">{analysisDetail.user}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Confidence Score</p>
-                <p className="font-medium">{scan.confidenceScore}%</p>
+                <p className="font-medium">{analysisDetail.confidence_score}%</p>
               </div>
             </div>
 
@@ -119,18 +213,18 @@ export default async function ScanDetailPage({ params }: PageProps) {
             <div>
               <p className="text-muted-foreground mb-1">Pattern Analysis</p>
               <p className="font-medium">
-                {scan.pattern} ({scan.patternSubtype})
+                {analysisDetail.pattern} ({analysisDetail.pattern_subtype})
               </p>
             </div>
 
             <div>
               <p className="text-muted-foreground mb-1">Minutiae Count</p>
-              <p className="font-medium">{scan.minutiaeCount} points identified</p>
+              <p className="font-medium">{analysisDetail.minutiae_count} points identified</p>
             </div>
 
             <div>
               <p className="text-muted-foreground mb-1">Notes</p>
-              <p>{scan.notes}</p>
+              <p>{analysisDetail.notes}</p>
             </div>
           </CardContent>
         </Card>

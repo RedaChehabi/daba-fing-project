@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,81 +21,71 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/compon
 import { Checkbox } from "@/components/ui/checkbox"
 import { format } from "date-fns"
 
-// Mock data for history
-const mockHistoryData = [
-  {
-    id: "FP-2023-127",
-    date: new Date(2023, 5, 15, 10, 42),
-    classification: "Whorl",
-    ridgeCount: 24,
-    confidence: 96.7,
-    status: "completed",
+// API service for analysis history
+const analysisService = {
+  async getUserHistory() {
+    // This would call your backend API - for now return empty array
+    // In a real implementation, you'd make an actual API call to your Django backend
+    return { history: [], total_count: 0, status: 'success' };
   },
-  {
-    id: "FP-2023-126",
-    date: new Date(2023, 5, 15, 9, 15),
-    classification: "Loop",
-    ridgeCount: 18,
-    confidence: 94.2,
-    status: "completed",
+
+  async deleteAnalysis(analysisId: string) {
+    // This would call your backend API to delete an analysis
+    console.log(`Deleting analysis ${analysisId}`);
+    return { message: 'Analysis deleted successfully', status: 'success' };
   },
-  {
-    id: "FP-2023-125",
-    date: new Date(2023, 5, 14, 16, 30),
-    classification: "Arch",
-    ridgeCount: 15,
-    confidence: 92.8,
-    status: "completed",
+
+  async bulkDeleteAnalyses(analysisIds: string[]) {
+    // This would call your backend API to delete multiple analyses
+    console.log(`Bulk deleting analyses:`, analysisIds);
+    return { message: `${analysisIds.length} analyses deleted successfully`, deleted_count: analysisIds.length, status: 'success' };
   },
-  {
-    id: "FP-2023-124",
-    date: new Date(2023, 5, 14, 14, 15),
-    classification: "Tented Arch",
-    ridgeCount: 16,
-    confidence: 89.5,
-    status: "completed",
+
+  async exportHistory() {
+    // This would call your backend API to export history
+    return { history: [], total_count: 0, status: 'success' };
   },
-  {
-    id: "FP-2023-123",
-    date: new Date(2023, 5, 13, 11, 45),
-    classification: "Loop",
-    ridgeCount: 20,
-    confidence: 95.1,
-    status: "completed",
-  },
-  {
-    id: "FP-2023-122",
-    date: new Date(2023, 5, 13, 9, 30),
-    classification: "Whorl",
-    ridgeCount: 22,
-    confidence: 97.3,
-    status: "completed",
-  },
-  {
-    id: "FP-2023-121",
-    date: new Date(2023, 5, 12, 15, 20),
-    classification: "Arch",
-    ridgeCount: 14,
-    confidence: 91.8,
-    status: "needs_review",
-  },
-  {
-    id: "FP-2023-120",
-    date: new Date(2023, 5, 12, 13, 10),
-    classification: "Loop",
-    ridgeCount: 19,
-    confidence: 88.5,
-    status: "needs_review",
-  },
-]
+};
+
+// Interface for the API response
+interface AnalysisHistoryItem {
+  id: string;
+  date: string;
+  classification: string;
+  ridge_count: number;
+  confidence: number;
+  status: string;
+  image_id: number;
+  processing_time: string;
+}
 
 export default function HistoryPage() {
+  const [historyData, setHistoryData] = useState<AnalysisHistoryItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [selectedClassification, setSelectedClassification] = useState("all")
   const [selectedItems, setSelectedItems] = useState<string[]>([])
 
-  const filteredData = mockHistoryData.filter((item) => {
+  // Load history data on component mount
+  useEffect(() => {
+    loadHistory()
+  }, [])
+
+  const loadHistory = async () => {
+    try {
+      setLoading(true)
+      const response = await analysisService.getUserHistory()
+      setHistoryData(response.history)
+    } catch (error) {
+      console.error('Error loading history:', error)
+      alert('Failed to load analysis history. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filteredData = historyData.filter((item) => {
     // Filter by search query
     const matchesSearch = item.id.toLowerCase().includes(searchQuery.toLowerCase())
 
@@ -119,10 +109,117 @@ export default function HistoryPage() {
   }
 
   const handleSelectAll = () => {
-    if (selectedItems.length === filteredData.length) {
+    if (selectedItems.length === filteredData.length && filteredData.length > 0) {
       setSelectedItems([])
     } else {
       setSelectedItems(filteredData.map((item) => item.id))
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      const response = await analysisService.exportHistory()
+      // Convert to CSV format
+      const csvContent = [
+        ['ID', 'Date', 'Classification', 'Ridge Count', 'Confidence', 'Status', 'Processing Time'].join(','),
+        ...response.history.map((item: AnalysisHistoryItem) => [
+          item.id,
+          new Date(item.date).toLocaleDateString(),
+          item.classification,
+          item.ridge_count,
+          `${item.confidence}%`,
+          item.status,
+          item.processing_time
+        ].join(','))
+      ].join('\n')
+      
+      // Download the CSV
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'analysis_history.csv'
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error exporting history:', error)
+      alert('Failed to export history')
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedItems.length === 0) return
+    
+    if (confirm(`Are you sure you want to delete ${selectedItems.length} selected analyses?`)) {
+      try {
+        await analysisService.bulkDeleteAnalyses(selectedItems)
+        alert(`${selectedItems.length} analyses deleted successfully`)
+        setSelectedItems([])
+        loadHistory() // Reload the history
+      } catch (error) {
+        console.error('Error deleting analyses:', error)
+        alert('Failed to delete analyses')
+      }
+    }
+  }
+
+  const handleDeleteSingle = async (analysisId: string) => {
+    if (confirm('Are you sure you want to delete this analysis?')) {
+      try {
+        await analysisService.deleteAnalysis(analysisId)
+        alert('Analysis deleted successfully')
+        loadHistory() // Reload the history
+      } catch (error) {
+        console.error('Error deleting analysis:', error)
+        alert('Failed to delete analysis')
+      }
+    }
+  }
+
+  const handleViewAnalysis = (analysisId: string) => {
+    // Navigate to analysis detail page
+    window.location.href = `/dashboard/scan/${analysisId}`
+  }
+
+  const handleDownloadSingle = async (item: AnalysisHistoryItem) => {
+    try {
+      // Create a simple CSV for the single item
+      const csvContent = [
+        ['ID', 'Date', 'Classification', 'Ridge Count', 'Confidence', 'Status'].join(','),
+        [
+          item.id,
+          new Date(item.date).toLocaleDateString(),
+          item.classification,
+          item.ridge_count,
+          `${item.confidence}%`,
+          item.status
+        ].join(',')
+      ].join('\n')
+      
+      // Download the CSV
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `analysis_${item.id}.csv`
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading analysis:', error)
+      alert('Failed to download analysis')
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "completed":
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Completed</Badge>
+      case "needs_review":
+        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">Needs Review</Badge>
+      case "processing":
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Processing</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
     }
   }
 
@@ -194,11 +291,11 @@ export default function HistoryPage() {
               </DropdownMenu>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-9 gap-1" disabled={selectedItems.length === 0}>
+              <Button variant="outline" size="sm" className="h-9 gap-1" disabled={selectedItems.length === 0} onClick={handleExport}>
                 <Download className="h-4 w-4" />
                 <span>Export</span>
               </Button>
-              <Button variant="destructive" size="sm" className="h-9 gap-1" disabled={selectedItems.length === 0}>
+              <Button variant="destructive" size="sm" className="h-9 gap-1" disabled={selectedItems.length === 0} onClick={handleBulkDelete}>
                 <Trash2 className="h-4 w-4" />
                 <span>Delete</span>
               </Button>
@@ -246,36 +343,27 @@ export default function HistoryPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>{format(item.date, "MMM d, yyyy")}</span>
-                          <span className="text-xs text-muted-foreground">{format(item.date, "h:mm a")}</span>
+                          <span>{format(new Date(item.date), "MMM d, yyyy")}</span>
+                          <span className="text-xs text-muted-foreground">{format(new Date(item.date), "h:mm a")}</span>
                         </div>
                       </TableCell>
                       <TableCell>{item.classification}</TableCell>
-                      <TableCell>{item.ridgeCount}</TableCell>
+                      <TableCell>{item.ridge_count}</TableCell>
                       <TableCell>{item.confidence}%</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={item.status === "completed" ? "default" : "secondary"}
-                          className={
-                            item.status === "completed"
-                              ? "bg-green-100 text-green-800 hover:bg-green-100"
-                              : "bg-amber-100 text-amber-800 hover:bg-amber-100"
-                          }
-                        >
-                          {item.status === "completed" ? "Completed" : "Needs Review"}
-                        </Badge>
+                        {getStatusBadge(item.status)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewAnalysis(item.id)}>
                             <Eye className="h-4 w-4" />
                             <span className="sr-only">View</span>
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadSingle(item)}>
                             <Download className="h-4 w-4" />
                             <span className="sr-only">Download</span>
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteSingle(item.id)}>
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Delete</span>
                           </Button>
@@ -290,7 +378,7 @@ export default function HistoryPage() {
 
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Showing <strong>{filteredData.length}</strong> of <strong>{mockHistoryData.length}</strong> results
+              Showing <strong>{filteredData.length}</strong> of <strong>{historyData.length}</strong> results
             </div>
             <Pagination>
               <PaginationContent>

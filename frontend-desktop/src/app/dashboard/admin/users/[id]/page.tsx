@@ -1,54 +1,109 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Eye, User } from "lucide-react"
+import Link from "next/link"
+import { adminService } from "@/services/api"
 
-// Mock user data
-const userData = {
-  id: "1",
-  name: "John Smith",
-  email: "john.smith@example.com",
-  role: "User",
-  status: "Active",
-  joinedAt: "Jan 15, 2023",
-  lastActive: "2 hours ago",
-  scansUploaded: 24,
-  scansAnalyzed: 18,
-  subscription: "Pro",
-  avatarUrl: "",
+// Interface for user detail from API
+interface UserDetail {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  is_active: boolean;
+  date_joined: string;
+  last_login: string | null;
+  analyses_count: number;
+  is_staff: boolean;
+  is_superuser: boolean;
 }
 
 interface PageProps {
   params: Promise<{ id: string }>
 }
 
-export async function generateStaticParams() {
-  // For static export, we need to provide the possible id values
-  // In a real app, you would fetch this from your API
-  return [
-    { id: '1' },
-    { id: '2' },
-    { id: '3' },
-  ]
-}
+export default function UserDetailPage({ params }: PageProps) {
+  const [userDetail, setUserDetail] = useState<UserDetail | null>(null)
+  const [loading, setLoading] = useState(true)
 
-export default async function UserDetailPage({ params }: PageProps) {
-  const { id } = await params
-  // In a real app, you would fetch user data based on id
-  const user = userData
+  useEffect(() => {
+    const loadUserDetail = async () => {
+      try {
+        const resolvedParams = await params
+        setLoading(true)
+        const response = await adminService.getUser(parseInt(resolvedParams.id))
+        setUserDetail(response)
+      } catch (error) {
+        console.error('Error loading user detail:', error)
+        alert('Failed to load user details. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadUserDetail()
+  }, [params])
+
+  const handleViewAsUser = () => {
+    if (userDetail) {
+      alert(`Viewing as ${userDetail.username} - This feature would switch user context`)
+    }
+  }
+
+  const handleEditUser = () => {
+    if (userDetail) {
+      // Navigate to edit user page or open edit dialog
+      alert(`Edit user functionality for ${userDetail.username} - This would open an edit form`)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-lg">Loading user details...</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!userDetail) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-lg">User not found</div>
+            <Link href="/dashboard/admin/users" className="text-primary hover:underline">
+              Return to Users
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const fullName = `${userDetail.first_name} ${userDetail.last_name}`.trim() || userDetail.username
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">User Details</h1>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleViewAsUser}>
             <Eye className="mr-2 h-4 w-4" />
             View As User
           </Button>
-          <Button>Edit User</Button>
+          <Button onClick={handleEditUser}>Edit User</Button>
         </div>
       </div>
 
@@ -56,17 +111,17 @@ export default async function UserDetailPage({ params }: PageProps) {
         <CardHeader>
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={user.avatarUrl} alt={user.name} />
+              <AvatarImage src={`/placeholder.svg?height=64&width=64`} alt={fullName} />
               <AvatarFallback>
                 <User className="h-8 w-8" />
               </AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle className="text-2xl">{user.name}</CardTitle>
-              <CardDescription>{user.email}</CardDescription>
+              <CardTitle className="text-2xl">{fullName}</CardTitle>
+              <CardDescription>{userDetail.email}</CardDescription>
               <div className="mt-2 flex gap-2">
-                <Badge>{user.role}</Badge>
-                <Badge variant={user.status === "Active" ? "default" : "destructive"}>{user.status}</Badge>
+                <Badge>{userDetail.role}</Badge>
+                <Badge variant={userDetail.is_active ? "default" : "destructive"}>{userDetail.is_active ? "Active" : "Inactive"}</Badge>
               </div>
             </div>
           </div>
@@ -77,22 +132,18 @@ export default async function UserDetailPage({ params }: PageProps) {
               <h3 className="mb-2 text-sm font-medium">Account Information</h3>
               <dl className="grid grid-cols-2 gap-1 text-sm">
                 <dt className="text-muted-foreground">User ID:</dt>
-                <dd>{user.id}</dd>
+                <dd>{userDetail.id}</dd>
                 <dt className="text-muted-foreground">Joined:</dt>
-                <dd>{user.joinedAt}</dd>
+                <dd>{userDetail.date_joined}</dd>
                 <dt className="text-muted-foreground">Last active:</dt>
-                <dd>{user.lastActive}</dd>
-                <dt className="text-muted-foreground">Subscription:</dt>
-                <dd>{user.subscription}</dd>
+                <dd>{userDetail.last_login}</dd>
               </dl>
             </div>
             <div>
               <h3 className="mb-2 text-sm font-medium">Usage Statistics</h3>
               <dl className="grid grid-cols-2 gap-1 text-sm">
-                <dt className="text-muted-foreground">Scans Uploaded:</dt>
-                <dd>{user.scansUploaded}</dd>
                 <dt className="text-muted-foreground">Scans Analyzed:</dt>
-                <dd>{user.scansAnalyzed}</dd>
+                <dd>{userDetail.analyses_count}</dd>
               </dl>
             </div>
           </div>

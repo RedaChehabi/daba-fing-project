@@ -179,13 +179,14 @@ export default function UsersPage() {
 
   // Handler functions for user actions
   const handleViewUser = (user: ApiUser) => {
-    // TODO: Implement view user details
-    alert(`Viewing user: ${user.full_name}`)
+    // Navigate to user detail page
+    window.location.href = `/dashboard/admin/users/${user.id}`
   }
 
   const handleEditUser = (user: ApiUser) => {
-    // TODO: Implement edit user
-    alert(`Editing user: ${user.full_name}`)
+    // For now, we'll use the same detail page with edit mode
+    // In a full implementation, you might want a separate edit page or modal
+    window.location.href = `/dashboard/admin/users/${user.id}?mode=edit`
   }
 
   const handleDeleteUser = async (user: ApiUser) => {

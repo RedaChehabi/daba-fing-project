@@ -9,6 +9,7 @@ import {
   Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { authService } from '../services/api';
 
 const UploadScreen = ({ navigation }: any) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -65,19 +66,42 @@ const UploadScreen = ({ navigation }: any) => {
 
   const uploadFingerprint = async () => {
     if (!selectedImage) {
-      Alert.alert('No Image Selected', 'Please select or take a photo first.');
+      Alert.alert('Error', 'Please select an image first.');
       return;
     }
 
     setIsUploading(true);
     try {
-      // Mock upload process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Add the image file to FormData
+      formData.append('image', {
+        uri: selectedImage,
+        type: 'image/jpeg',
+        name: 'fingerprint.jpg',
+      } as any);
+      
+      // Add additional metadata if needed
+      formData.append('title', 'Mobile Upload');
+      
+      // Upload to backend
+      const uploadResponse = await authService.uploadFingerprint(formData);
+      
+      // Start analysis
+      const analysisResponse = await authService.analyzeFingerprint(uploadResponse.id);
       
       Alert.alert(
         'Upload Successful',
-        'Your fingerprint has been uploaded and analysis has started.',
+        'Your fingerprint has been uploaded and analysis has completed.',
         [
+          {
+            text: 'View Results',
+            onPress: () => navigation.navigate('AnalysisDetail', { 
+              analysisId: analysisResponse.id, 
+              analysisData: analysisResponse 
+            }),
+          },
           {
             text: 'View History',
             onPress: () => navigation.navigate('History'),
@@ -88,7 +112,8 @@ const UploadScreen = ({ navigation }: any) => {
       
       setSelectedImage(null);
     } catch (error) {
-      Alert.alert('Upload Failed', 'Please try again.');
+      console.error('Upload error:', error);
+      Alert.alert('Upload Failed', 'Please check your connection and try again.');
     } finally {
       setIsUploading(false);
     }

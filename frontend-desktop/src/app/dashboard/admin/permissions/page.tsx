@@ -7,11 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import {
   Shield,
-  ArrowLeft,
   Settings,
   Users,
   BarChart3,
   FileText,
+  ChevronLeft,
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { motion } from "framer-motion"
@@ -150,6 +150,10 @@ export default function PermissionsPage() {
     }
   }
 
+  const handleEditPermissions = () => {
+    // Implementation of handleEditPermissions function
+  }
+
   return (
     <motion.div className="space-y-6" variants={containerVariants} initial="hidden" animate="visible">
       <motion.div
@@ -157,17 +161,19 @@ export default function PermissionsPage() {
         variants={itemVariants}
       >
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/admin/users">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Users
-            </Button>
+          <Link href="/dashboard/admin/users" className="flex items-center text-muted-foreground hover:text-foreground mb-2">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to User Management
           </Link>
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Permission Settings</h2>
-            <p className="text-muted-foreground">Configure role-based permissions</p>
+            <p className="text-muted-foreground">Manage system permissions and role assignments</p>
           </div>
         </div>
+        <Button onClick={() => handleEditPermissions()}>
+          <Settings className="h-4 w-4 mr-2" />
+          Edit Permissions
+        </Button>
       </motion.div>
 
       <motion.div variants={itemVariants}>

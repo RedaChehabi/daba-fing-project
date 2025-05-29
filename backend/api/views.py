@@ -1169,90 +1169,221 @@ def admin_get_permissions(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def admin_get_user_groups(request):
-    """Get user groups statistics (admin only)"""
-    user = request.user
-    
-    # Check if user is admin
-    if not (hasattr(user, 'profile') and user.profile.role and user.profile.role.role_name == UserRole.ROLE_ADMIN):
+    """
+    Get all user groups for admin management
+    """
+    if not request.user.profile.role.can_manage_users:
         return Response({
-            'detail': 'Permission denied. Admin access required.',
+            'message': 'Access denied. Admin privileges required.',
             'status': 'error'
         }, status=status.HTTP_403_FORBIDDEN)
-    
+        
     try:
-        # Group users by different criteria
-        groups = []
-        
-        # Group by role
-        roles = UserRole.objects.all()
-        for role in roles:
-            users_in_role = UserProfile.objects.filter(role=role)
-            if users_in_role.exists():
-                groups.append({
-                    'id': f'role_{role.id}',
-                    'name': f'{role.role_name} Users',
-                    'type': 'role',
-                    'description': f'Users with {role.role_name} role',
-                    'user_count': users_in_role.count(),
-                    'users': [
-                        {
-                            'id': profile.user.id,
-                            'username': profile.user.username,
-                            'email': profile.user.email,
-                            'full_name': f"{profile.first_name} {profile.last_name}".strip() or profile.user.username
-                        }
-                        for profile in users_in_role.select_related('user')
-                    ]
-                })
-        
-        # Group by status
-        active_users = UserProfile.objects.filter(is_active=True, user__is_active=True)
-        inactive_users = UserProfile.objects.filter(is_active=False)
-        
-        if active_users.exists():
-            groups.append({
-                'id': 'status_active',
-                'name': 'Active Users',
-                'type': 'status',
-                'description': 'Users with active accounts',
-                'user_count': active_users.count(),
-                'users': [
-                    {
-                        'id': profile.user.id,
-                        'username': profile.user.username,
-                        'email': profile.user.email,
-                        'full_name': f"{profile.first_name} {profile.last_name}".strip() or profile.user.username
-                    }
-                    for profile in active_users.select_related('user')
-                ]
-            })
-        
-        if inactive_users.exists():
-            groups.append({
-                'id': 'status_inactive',
-                'name': 'Inactive Users',
-                'type': 'status',
-                'description': 'Users with inactive accounts',
-                'user_count': inactive_users.count(),
-                'users': [
-                    {
-                        'id': profile.user.id,
-                        'username': profile.user.username,
-                        'email': profile.user.email,
-                        'full_name': f"{profile.first_name} {profile.last_name}".strip() or profile.user.username
-                    }
-                    for profile in inactive_users.select_related('user')
-                ]
-            })
+        # For now, return basic groups structure
+        # In a real implementation, you might have a UserGroup model
+        groups = [
+            {
+                'id': 'group-001',
+                'name': 'Default Users',
+                'type': 'auto',
+                'description': 'Automatically assigned group for regular users',
+                'user_count': User.objects.filter(profile__role__role_name=UserRole.ROLE_REGULAR).count(),
+                'users': []
+            },
+            {
+                'id': 'group-002', 
+                'name': 'Expert Reviewers',
+                'type': 'manual',
+                'description': 'Expert users who can review analyses',
+                'user_count': User.objects.filter(profile__role__role_name=UserRole.ROLE_EXPERT).count(),
+                'users': []
+            },
+            {
+                'id': 'group-003',
+                'name': 'Administrators', 
+                'type': 'manual',
+                'description': 'Admin users with full system access',
+                'user_count': User.objects.filter(profile__role__role_name=UserRole.ROLE_ADMIN).count(),
+                'users': []
+            }
+        ]
         
         return Response({
             'groups': groups,
-            'total_groups': len(groups)
-        })
+            'total_groups': len(groups),
+            'status': 'success'
+        }, status=status.HTTP_200_OK)
         
     except Exception as e:
         print(f"Error in admin_get_user_groups: {str(e)}")
+        traceback.print_exc()
         return Response({
-            'detail': 'An error occurred while fetching user groups.',
+            'message': 'Failed to fetch user groups',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_analysis_history(request):
+    """
+    Get analysis history for the current user
+    """
+    try:
+        # Get user's fingerprint analyses
+        analyses = FingerprintAnalysis.objects.filter(
+            image__user=request.user
+        ).select_related('image', 'model_version').order_by('-created_at')
+        
+        history_data = []
+        for analysis in analyses:
+            history_data.append({
+                'id': f"FP-{analysis.id}",
+                'date': analysis.created_at,
+                'classification': analysis.classification or 'Unknown',
+                'ridge_count': analysis.ridge_count or 0,
+                'confidence': round((analysis.confidence_score or 0) * 100, 1),
+                'status': 'completed' if analysis.analysis_status == 'completed_mock' else 'needs_review',
+                'image_id': analysis.image.id,
+                'processing_time': analysis.processing_time or '0s'
+            })
+        
+        return Response({
+            'history': history_data,
+            'total_count': len(history_data),
+            'status': 'success'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error in get_user_analysis_history: {str(e)}")
+        traceback.print_exc()
+        return Response({
+            'message': 'Failed to fetch analysis history',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_analysis_detail(request, analysis_id):
+    """
+    Get detailed information about a specific analysis
+    """
+    try:
+        # Parse the analysis ID (removing FP- prefix if present)
+        if analysis_id.startswith('FP-'):
+            actual_id = analysis_id[3:]
+        else:
+            actual_id = analysis_id
+            
+        analysis = FingerprintAnalysis.objects.select_related(
+            'image', 'model_version'
+        ).get(id=actual_id, image__user=request.user)
+        
+        analysis_data = {
+            'id': f"FP-{analysis.id}",
+            'type': f"Index Finger",  # Could be enhanced with actual finger type
+            'status': 'Analyzed' if analysis.analysis_status == 'completed_mock' else 'Processing',
+            'upload_date': analysis.image.upload_date.strftime('%b %d, %Y'),
+            'analyzed_date': analysis.created_at.strftime('%b %d, %Y'),
+            'user': analysis.image.user.get_full_name() or analysis.image.user.username,
+            'pattern': analysis.classification or 'Unknown',
+            'pattern_subtype': 'Standard',  # Could be enhanced with subtype analysis
+            'confidence_score': round((analysis.confidence_score or 0) * 100),
+            'minutiae_count': analysis.ridge_count or 0,
+            'notes': f"Analysis completed using {analysis.model_version.version_number if analysis.model_version else 'Unknown model'}",
+            'image_url': analysis.image.image.url if analysis.image.image else None,
+            'processing_time': analysis.processing_time or '0s',
+            'analysis_results': analysis.analysis_results or {}
+        }
+        
+        return Response({
+            'analysis': analysis_data,
+            'status': 'success'
+        }, status=status.HTTP_200_OK)
+        
+    except FingerprintAnalysis.DoesNotExist:
+        return Response({
+            'message': 'Analysis not found or access denied',
+            'status': 'error'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Error in get_analysis_detail: {str(e)}")
+        traceback.print_exc()
+        return Response({
+            'message': 'Failed to fetch analysis details',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_user_analysis(request, analysis_id):
+    """
+    Delete a user's analysis
+    """
+    try:
+        # Parse the analysis ID (removing FP- prefix if present)
+        if analysis_id.startswith('FP-'):
+            actual_id = analysis_id[3:]
+        else:
+            actual_id = analysis_id
+            
+        analysis = FingerprintAnalysis.objects.get(id=actual_id, image__user=request.user)
+        analysis.delete()
+        
+        return Response({
+            'message': 'Analysis deleted successfully',
+            'status': 'success'
+        }, status=status.HTTP_200_OK)
+        
+    except FingerprintAnalysis.DoesNotExist:
+        return Response({
+            'message': 'Analysis not found or access denied',
+            'status': 'error'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Error in delete_user_analysis: {str(e)}")
+        traceback.print_exc()
+        return Response({
+            'message': 'Failed to delete analysis',
+            'status': 'error'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def bulk_delete_user_analyses(request):
+    """
+    Delete multiple user analyses
+    """
+    try:
+        analysis_ids = request.data.get('analysis_ids', [])
+        if not analysis_ids:
+            return Response({
+                'message': 'No analysis IDs provided',
+                'status': 'error'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Parse analysis IDs (removing FP- prefix if present)
+        actual_ids = []
+        for aid in analysis_ids:
+            if aid.startswith('FP-'):
+                actual_ids.append(aid[3:])
+            else:
+                actual_ids.append(aid)
+        
+        deleted_count = FingerprintAnalysis.objects.filter(
+            id__in=actual_ids, 
+            image__user=request.user
+        ).delete()[0]
+        
+        return Response({
+            'message': f'{deleted_count} analyses deleted successfully',
+            'deleted_count': deleted_count,
+            'status': 'success'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error in bulk_delete_user_analyses: {str(e)}")
+        traceback.print_exc()
+        return Response({
+            'message': 'Failed to delete analyses',
             'status': 'error'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

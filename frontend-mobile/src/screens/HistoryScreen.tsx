@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../services/api';
 
 interface AnalysisItem {
   id: string;
@@ -17,6 +18,8 @@ interface AnalysisItem {
   confidence: number;
   analysis_date: string;
   status: string;
+  ridge_count?: number;
+  processing_time?: string;
 }
 
 const HistoryScreen = ({ navigation }: any) => {
@@ -27,35 +30,23 @@ const HistoryScreen = ({ navigation }: any) => {
 
   const loadAnalysisHistory = async () => {
     try {
-      // Mock data for now - replace with actual API call
-      const mockData: AnalysisItem[] = [
-        {
-          id: '1',
-          fingerprint_id: 'fp_001',
-          classification: 'Loop',
-          confidence: 92.5,
-          analysis_date: new Date().toISOString(),
-          status: 'completed',
-        },
-        {
-          id: '2',
-          fingerprint_id: 'fp_002',
-          classification: 'Whorl',
-          confidence: 87.3,
-          analysis_date: new Date(Date.now() - 86400000).toISOString(),
-          status: 'completed',
-        },
-        {
-          id: '3',
-          fingerprint_id: 'fp_003',
-          classification: 'Arch',
-          confidence: 94.1,
-          analysis_date: new Date(Date.now() - 172800000).toISOString(),
-          status: 'completed',
-        },
-      ];
-      setAnalyses(mockData);
+      const response = await authService.getAnalysisHistory();
+      
+      // Transform the response to match our interface
+      const transformedData: AnalysisItem[] = response.history.map((item: any) => ({
+        id: item.id,
+        fingerprint_id: item.id, // Use the same ID or adjust as needed
+        classification: item.classification,
+        confidence: item.confidence,
+        analysis_date: item.date,
+        status: item.status,
+        ridge_count: item.ridge_count,
+        processing_time: item.processing_time,
+      }));
+      
+      setAnalyses(transformedData);
     } catch (error) {
+      console.error('Error loading analysis history:', error);
       Alert.alert('Error', 'Failed to load analysis history');
     } finally {
       setIsLoading(false);
@@ -85,6 +76,8 @@ const HistoryScreen = ({ navigation }: any) => {
         return '#FF9800';
       case 'failed':
         return '#F44336';
+      case 'needs_review':
+        return '#FF9800';
       default:
         return '#757575';
     }
@@ -93,10 +86,10 @@ const HistoryScreen = ({ navigation }: any) => {
   const renderAnalysisItem = ({ item }: { item: AnalysisItem }) => (
     <TouchableOpacity
       style={styles.analysisItem}
-      onPress={() => navigation.navigate('AnalysisDetail', { analysisId: item.id })}
+      onPress={() => navigation.navigate('AnalysisDetail', { analysisId: item.id, analysisData: item })}
     >
       <View style={styles.analysisHeader}>
-        <Text style={styles.fingerprintId}>Fingerprint {item.fingerprint_id}</Text>
+        <Text style={styles.fingerprintId}>Analysis {item.id}</Text>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
           <Text style={styles.statusText}>{item.status}</Text>
         </View>
@@ -105,6 +98,9 @@ const HistoryScreen = ({ navigation }: any) => {
       <View style={styles.analysisDetails}>
         <Text style={styles.classification}>Classification: {item.classification}</Text>
         <Text style={styles.confidence}>Confidence: {item.confidence.toFixed(1)}%</Text>
+        {item.ridge_count && (
+          <Text style={styles.ridgeCount}>Ridge Count: {item.ridge_count}</Text>
+        )}
         <Text style={styles.date}>{formatDate(item.analysis_date)}</Text>
       </View>
     </TouchableOpacity>
@@ -269,6 +265,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  ridgeCount: {
+    fontSize: 14,
+    color: '#666',
   },
 });
 

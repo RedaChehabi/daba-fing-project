@@ -12,7 +12,8 @@ from .views import (
     admin_list_users, admin_create_user, admin_update_user, 
     admin_delete_user, admin_bulk_delete_users, admin_get_user,
     admin_list_roles, admin_create_role, admin_update_role, admin_delete_role,
-    admin_get_permissions, admin_get_user_groups
+    admin_get_permissions, admin_get_user_groups,
+    get_user_analysis_history, get_analysis_detail, delete_user_analysis, bulk_delete_user_analyses
 )
 
 # Add these URLs to the existing urlpatterns
@@ -46,4 +47,9 @@ urlpatterns = [
     # Admin permission and group URLs
     path('admin/permissions/', admin_get_permissions, name='admin_get_permissions'),
     path('admin/user-groups/', admin_get_user_groups, name='admin_get_user_groups'),
+    # User analysis history URLs
+    path('user/analysis-history/', get_user_analysis_history, name='get_user_analysis_history'),
+    path('analysis/<str:analysis_id>/', get_analysis_detail, name='get_analysis_detail'),
+    path('analysis/<str:analysis_id>/delete/', delete_user_analysis, name='delete_user_analysis'),
+    path('user/analysis/bulk-delete/', bulk_delete_user_analyses, name='bulk_delete_user_analyses'),
 ]
