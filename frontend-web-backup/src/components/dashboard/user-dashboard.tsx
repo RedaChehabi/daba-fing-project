@@ -37,9 +37,22 @@ import {
   AlertCircle,
   FileText,
   Star,
-  Award,UserCheck, Send, UserPlus, Loader2 
+  Award,UserCheck, Send, UserPlus, Loader2,
+  BarChart3,
+  MessageCircle,
+  Calendar,
+  Activity,
+  Info,
+  Plus,
+  Download,
+  RefreshCw,
 } from 'lucide-react';
 import ExpertApplicationForm from '../expert-application/expert-application-form';
+import { analysisService } from '@/services/api';
+
+// Import new components for feedback and export functionality
+import FeedbackForm from '@/components/feedback/feedback-form';
+import ExportMenu from '@/components/export/export-menu';
 
 // Types for better type safety
 interface UploadStats {
@@ -187,32 +200,38 @@ const UserDashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true);
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setError(null);
         
-        // Set mock data
+        // Get dashboard stats from the new endpoint
+        const response = await fetch('http://localhost:8000/api/dashboard/stats/', {
+          headers: {
+            'Authorization': `Token ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
+        
+        const data = await response.json();
+        
+        // Set stats from API response
         setStats({
-          totalUploads: 9,
-          analysesCompleted: 6,
-          analysesPending: 2,
+          totalUploads: data.stats.total_uploads,
+          analysesCompleted: data.stats.analyses_completed,
+          analysesPending: data.stats.analyses_pending,
         });
 
-        setRecentUploads([
-          { id: 1, title: 'Left Index', status: 'Analyzed', date: '2023-10-26', confidence: 94.5 },
-          { id: 2, title: 'Right Thumb', status: 'Pending', date: '2023-10-27' },
-          { id: 3, title: 'Left Thumb', status: 'Analyzed', date: '2023-10-25', confidence: 95.2 },
-          { id: 4, title: 'Right Index', status: 'Failed', date: '2023-10-24' },
-          { id: 5, title: 'Left Middle', status: 'Processing', date: '2023-10-28' },
-        ]);
+        // Set recent uploads from API response
+        setRecentUploads(data.recent_uploads || []);
 
-        setLastAnalysis({
-          id: 3,
-          title: 'Left Thumb',
-          classification: 'Whorl',
-          confidence: 95.2,
-          date: '2023-10-25',
-        });
+        // Set last analysis from API response
+        if (data.last_analysis) {
+          setLastAnalysis(data.last_analysis);
+        }
       } catch (err) {
+        console.error('Error loading dashboard data:', err);
         setError('Failed to load dashboard data');
       } finally {
         setIsLoading(false);
@@ -546,7 +565,7 @@ const UserDashboard: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks at your fingertips.</CardDescription>
+            <CardDescription>Common tasks and operations</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Link href="/dashboard/upload" passHref>
@@ -559,6 +578,7 @@ const UserDashboard: React.FC = () => {
                 <History className="h-4 w-4" /> View History
               </Button>
             </Link>
+            <ExportMenu showBulkOptions={false} />
             <Link href="/dashboard/settings" passHref>
               <Button variant="outline" className="gap-2">
                 <Settings className="h-4 w-4" /> Settings
@@ -595,11 +615,24 @@ const UserDashboard: React.FC = () => {
                     <span className="font-semibold">{lastAnalysis.confidence}%</span>
                   </p>
                 </div>
-                <Link href={`/dashboard/history/${lastAnalysis.id}`} passHref>
-                  <Button variant="link" size="sm" className="p-0 h-auto gap-1">
-                    <Eye className="h-3 w-3" /> View Details
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-2 pt-2">
+                  <Link href={`/dashboard/history/${lastAnalysis.id}`} passHref>
+                    <Button variant="link" size="sm" className="p-0 h-auto gap-1">
+                      <Eye className="h-3 w-3" /> View Details
+                    </Button>
+                  </Link>
+                  <FeedbackForm
+                    analysisId={lastAnalysis.id}
+                    currentClassification={lastAnalysis.classification}
+                    currentRidgeCount={15} // Mock ridge count
+                    confidence={lastAnalysis.confidence}
+                    onFeedbackSubmitted={() => {
+                      // Refresh data or show success message
+                      console.log('Feedback submitted successfully');
+                    }}
+                  />
+                  <ExportMenu analysisId={lastAnalysis.id} analysisTitle={lastAnalysis.title} />
+                </div>
               </>
             ) : (
               <div className="text-center py-4">

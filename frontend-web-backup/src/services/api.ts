@@ -433,4 +433,238 @@ export const userGroupService = {
   },
 };
 
+// Analysis History interfaces
+interface AnalysisHistoryItem {
+  id: string;
+  date: string;
+  classification: string;
+  ridge_count: number;
+  confidence: number;
+  status: string;
+  image_id: number;
+  processing_time: string;
+}
+
+interface AnalysisHistoryResponse {
+  history: AnalysisHistoryItem[];
+  total_count: number;
+  status: string;
+}
+
+interface AnalysisDetail {
+  id: string;
+  type: string;
+  status: string;
+  upload_date: string;
+  analyzed_date: string;
+  user: string;
+  pattern: string;
+  pattern_subtype: string;
+  confidence_score: number;
+  minutiae_count: number;
+  notes: string;
+  image_url?: string;
+  processing_time: string;
+  analysis_results: Record<string, unknown>;
+}
+
+interface AnalysisDetailResponse {
+  analysis: AnalysisDetail;
+  status: string;
+}
+
+interface DeleteAnalysisResponse {
+  message: string;
+  status: string;
+}
+
+interface BulkDeleteAnalysisResponse {
+  message: string;
+  deleted_count: number;
+  status: string;
+}
+
+// Analysis History API
+export const analysisService = {
+  getUserHistory: async (): Promise<AnalysisHistoryResponse> => {
+    const response = await api.get<AnalysisHistoryResponse>('/user/analysis-history/');
+    return response.data;
+  },
+
+  getAnalysisDetail: async (analysisId: string): Promise<AnalysisDetailResponse> => {
+    const response = await api.get<AnalysisDetailResponse>(`/analysis/${analysisId}/`);
+    return response.data;
+  },
+
+  deleteAnalysis: async (analysisId: string): Promise<DeleteAnalysisResponse> => {
+    const response = await api.delete<DeleteAnalysisResponse>(`/analysis/${analysisId}/delete/`);
+    return response.data;
+  },
+
+  bulkDeleteAnalyses: async (analysisIds: string[]): Promise<BulkDeleteAnalysisResponse> => {
+    const response = await api.post<BulkDeleteAnalysisResponse>('/user/analysis/bulk-delete/', { 
+      analysis_ids: analysisIds 
+    });
+    return response.data;
+  },
+
+  exportHistory: async (): Promise<AnalysisHistoryResponse> => {
+    // For CSV export, we'll just get the data and format it client-side
+    const response = await api.get<AnalysisHistoryResponse>('/user/analysis-history/');
+    return response.data;
+  },
+};
+
+// ==================== EXPORT SERVICES ====================
+
+export interface ExportService {
+  exportAnalysisPDF: (analysisId: number) => Promise<Blob>;
+  exportUserHistoryCSV: () => Promise<Blob>;
+  exportBulkAnalysisPDF: (analysisIds: number[]) => Promise<Blob>;
+}
+
+export const exportService: ExportService = {
+  exportAnalysisPDF: async (analysisId: number): Promise<Blob> => {
+    const response = await api.get(`/export/analysis/${analysisId}/pdf/`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  exportUserHistoryCSV: async (): Promise<Blob> => {
+    const response = await api.get('/export/user/history/csv/', {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  exportBulkAnalysisPDF: async (analysisIds: number[]): Promise<Blob> => {
+    const response = await api.post('/export/bulk/pdf/', 
+      { analysis_ids: analysisIds },
+      { responseType: 'blob' }
+    );
+    return response.data;
+  },
+};
+
+// ==================== FEEDBACK SERVICES ====================
+
+export interface FeedbackSubmission {
+  analysis_id: number;
+  feedback_type: 'correction' | 'validation' | 'improvement';
+  correction_details?: string;
+  corrected_ridge_count?: number;
+  corrected_classification?: string;
+  helpfulness_rating?: number; // 1-5 scale
+}
+
+export interface FeedbackItem {
+  id: number;
+  user: string;
+  feedback_type: string;
+  correction_details?: string;
+  corrected_ridge_count?: number;
+  corrected_classification?: string;
+  feedback_date: string;
+  helpfulness_rating?: number;
+  is_expert_feedback: boolean;
+}
+
+export interface FeedbackResponse {
+  feedback: FeedbackItem[];
+  total_count: number;
+  status: string;
+}
+
+export interface FeedbackSubmissionResponse {
+  message: string;
+  feedback_id: number;
+  is_expert_feedback: boolean;
+  status: string;
+}
+
+export interface UserFeedbackHistory {
+  id: number;
+  analysis_id: number;
+  fingerprint_title: string;
+  feedback_type: string;
+  correction_details?: string;
+  corrected_ridge_count?: number;
+  corrected_classification?: string;
+  feedback_date: string;
+  helpfulness_rating?: number;
+  is_expert_feedback: boolean;
+}
+
+export interface UserFeedbackHistoryResponse {
+  feedback_history: UserFeedbackHistory[];
+  total_count: number;
+  status: string;
+}
+
+export const feedbackService = {
+  submitFeedback: async (feedbackData: FeedbackSubmission): Promise<FeedbackSubmissionResponse> => {
+    const response = await api.post<FeedbackSubmissionResponse>('/feedback/submit/', feedbackData);
+    return response.data;
+  },
+
+  getAnalysisFeedback: async (analysisId: number): Promise<FeedbackResponse> => {
+    const response = await api.get<FeedbackResponse>(`/feedback/analysis/${analysisId}/`);
+    return response.data;
+  },
+
+  getUserFeedbackHistory: async (): Promise<UserFeedbackHistoryResponse> => {
+    const response = await api.get<UserFeedbackHistoryResponse>('/feedback/user/history/');
+    return response.data;
+  },
+};
+
+// ==================== UTILITY FUNCTIONS ====================
+
+export const downloadUtils = {
+  downloadBlob: (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
+
+  downloadAnalysisPDF: async (analysisId: number, filename?: string) => {
+    try {
+      const blob = await exportService.exportAnalysisPDF(analysisId);
+      const downloadFilename = filename || `analysis_${analysisId}_report.pdf`;
+      downloadUtils.downloadBlob(blob, downloadFilename);
+    } catch (error) {
+      console.error('Failed to download analysis PDF:', error);
+      throw error;
+    }
+  },
+
+  downloadUserHistoryCSV: async (username?: string) => {
+    try {
+      const blob = await exportService.exportUserHistoryCSV();
+      const downloadFilename = `fingerprint_analysis_history_${username || 'user'}.csv`;
+      downloadUtils.downloadBlob(blob, downloadFilename);
+    } catch (error) {
+      console.error('Failed to download user history CSV:', error);
+      throw error;
+    }
+  },
+
+  downloadBulkAnalysisPDF: async (analysisIds: number[], filename?: string) => {
+    try {
+      const blob = await exportService.exportBulkAnalysisPDF(analysisIds);
+      const downloadFilename = filename || `bulk_analysis_report_${analysisIds.length}_items.pdf`;
+      downloadUtils.downloadBlob(blob, downloadFilename);
+    } catch (error) {
+      console.error('Failed to download bulk analysis PDF:', error);
+      throw error;
+    }
+  },
+};
+
 export default api;
