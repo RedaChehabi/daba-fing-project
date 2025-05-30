@@ -50,6 +50,10 @@ import {
 import ExpertApplicationForm from '../expert-application/expert-application-form';
 import { analysisService } from '@/services/api';
 
+// Import new components for feedback and export functionality
+import FeedbackForm from '@/components/feedback/feedback-form';
+import ExportMenu from '@/components/export/export-menu';
+
 // Types for better type safety
 interface UploadStats {
   totalUploads: number;
@@ -561,7 +565,7 @@ const UserDashboard: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks at your fingertips.</CardDescription>
+            <CardDescription>Common tasks and operations</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Link href="/dashboard/upload" passHref>
@@ -574,6 +578,7 @@ const UserDashboard: React.FC = () => {
                 <History className="h-4 w-4" /> View History
               </Button>
             </Link>
+            <ExportMenu showBulkOptions={false} />
             <Link href="/dashboard/settings" passHref>
               <Button variant="outline" className="gap-2">
                 <Settings className="h-4 w-4" /> Settings
@@ -610,11 +615,24 @@ const UserDashboard: React.FC = () => {
                     <span className="font-semibold">{lastAnalysis.confidence}%</span>
                   </p>
                 </div>
-                <Link href={`/dashboard/history/${lastAnalysis.id}`} passHref>
-                  <Button variant="link" size="sm" className="p-0 h-auto gap-1">
-                    <Eye className="h-3 w-3" /> View Details
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-2 pt-2">
+                  <Link href={`/dashboard/history/${lastAnalysis.id}`} passHref>
+                    <Button variant="link" size="sm" className="p-0 h-auto gap-1">
+                      <Eye className="h-3 w-3" /> View Details
+                    </Button>
+                  </Link>
+                  <FeedbackForm
+                    analysisId={lastAnalysis.id}
+                    currentClassification={lastAnalysis.classification}
+                    currentRidgeCount={15} // Mock ridge count
+                    confidence={lastAnalysis.confidence}
+                    onFeedbackSubmitted={() => {
+                      // Refresh data or show success message
+                      console.log('Feedback submitted successfully');
+                    }}
+                  />
+                  <ExportMenu analysisId={lastAnalysis.id} analysisTitle={lastAnalysis.title} />
+                </div>
               </>
             ) : (
               <div className="text-center py-4">

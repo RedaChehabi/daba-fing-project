@@ -241,16 +241,40 @@ class ExportLog(models.Model):
         return f"Export of {self.analysis} by {self.user.username} in {self.export_format}"
 
 class MergedFingerprint(models.Model):
+    """
+    Model to track merged fingerprint operations and results
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='merged_fingerprints')
-    left_image = models.ForeignKey(FingerprintImage, on_delete=models.CASCADE, related_name='left_merges')
-    middle_image = models.ForeignKey(FingerprintImage, on_delete=models.CASCADE, related_name='middle_merges', blank=True, null=True)
-    right_image = models.ForeignKey(FingerprintImage, on_delete=models.CASCADE, related_name='right_merges')
-    merged_image = models.ImageField(upload_to='merged_fingerprints')
+    left_image = models.ForeignKey(FingerprintImage, on_delete=models.CASCADE, related_name='merged_as_left')
+    middle_image = models.ForeignKey(FingerprintImage, on_delete=models.CASCADE, related_name='merged_as_middle', null=True, blank=True)
+    right_image = models.ForeignKey(FingerprintImage, on_delete=models.CASCADE, related_name='merged_as_right')
+    merged_image = models.ImageField(upload_to='merged_fingerprints/', null=True, blank=True)
     merge_date = models.DateTimeField(auto_now_add=True)
     is_processed = models.BooleanField(default=False)
+    merge_quality_score = models.FloatField(null=True, blank=True, help_text="Quality score of the merge operation (0-100)")
+    merge_parameters = models.JSONField(default=dict, blank=True, help_text="Parameters used for merging")
+    
+    class Meta:
+        db_table = 'api_mergedfingerprint'
+        ordering = ['-merge_date']
+        verbose_name = 'Merged Fingerprint'
+        verbose_name_plural = 'Merged Fingerprints'
     
     def __str__(self):
-        return f"Merged fingerprint by {self.user.username} on {self.merge_date}"
+        middle_str = f" + {self.middle_image.id}" if self.middle_image else ""
+        return f"Merge: {self.left_image.id}{middle_str} + {self.right_image.id} by {self.user.username}"
+    
+    @property
+    def merge_components_count(self):
+        """Get the number of components used in the merge"""
+        return 3 if self.middle_image else 2
+    
+    @property
+    def merge_success_rate(self):
+        """Get merge success rate from quality score"""
+        if self.merge_quality_score:
+            return min(100, max(0, self.merge_quality_score))
+        return None
 
 # Signal to create user profile when a new user is created
 @receiver(post_save, sender=User)

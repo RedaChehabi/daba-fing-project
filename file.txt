@@ -1,0 +1,150 @@
+©Copyright Jean Bosco Nsekuye 2025 • Jeanbosco.nsekuye@uit.ac.ma
+DabaFing: A Desktop, Web, and Mobile Application for Fingerprint
+Classification and Ridge Counting in Fingerprints Using
+Reinforcement Learning
+This document outlines the requirements and specifications for the development of a cross-
+platform application (desktop, web, and mobile) that leverages Interactive Reinforcement
+Learning (IRL) or Learning from Human Feedback (LHF) to classify and count ridges in
+fingerprint images. The application will incorporate human feedback to improve the model's
+accuracy and adaptability over time, providing a dynamic and user-centric solution for
+fingerprint analysis.
+1. Objectives
+• Develop an Interactive Reinforcement Learning (IRL) or Learning from Human
+Feedback (LHF) model capable of accurately classifying and counting ridges in
+fingerprint images.
+• Create a seamless user experience across desktop, web, and mobile platforms.
+• Enable users to provide feedback to refine the model's performance iteratively.
+• Ensure high performance, scalability, and security of the application.
+• Provide an intuitive interface for users to upload, process, and analyze fingerprint
+images.
+2. Functional Requirements
+2.1. Core Features
+1- 2- 3- 4- Fingerprint Image Upload: Allow users to upload fingerprint images in maximum
+possible formats (e.g., JPEG, JPG, PNG, BMP, TIFF, TIF, WebP, PDF) either from
+biometric sensor, smartphone camera, or from paper with inked fingerprint images.
+Preprocessing: Automatically preprocess images (e.g., noise reduction,
+normalization) before analysis.
+Merging capability: Integrate the capability for merging left, middle, and right
+parts of a fingerprint to form a more complete fingerprint.
+Interactive Reinforcement Learning (IRL) / Learning from Human Feedback
+(LHF) Model (at least 93% accuracy):
+©Copyright Jean Bosco Nsekuye 2025 • +212687522465
+• jb.nsekuye@isicod.net
+©Copyright Jean Bosco Nsekuye 2025 • Jeanbosco.nsekuye@uit.ac.ma
+o Train and deploy a model that adapts based on user feedback.
+o Allow users to correct or validate the model's predictions (e.g., ridge count,
+classification).
+o Continuously update the model using feedback to improve accuracy.
+5- Analysis Results:
+o Display original image and ridge feature-enhanced image
+o Provide a visual overlay highlighting ridges on the fingerprint image.
+o Generate fingerprint classification report.
+o Display the number of ridges detected.
+6- Feedback Mechanism:
+o Enable users to provide feedback on the accuracy of results.
+o Allow users to annotate or correct ridge counts and classifications.
+7- Export Results: Allow users to export results in PDF, CSV, or image formats.
+2.2 User Management
+• Authentication: Secure login and registration for users.
+• Role-Based Access: Differentiate between admin and standard user roles.
+• User Profiles: Allow users to manage their profiles and view analysis history.
+2.3. Platform-Specific Features
+• Desktop Application:
+o Offline functionality for image processing.
+o High-performance processing for large datasets.
+• Web Application:
+o Responsive design for compatibility with various devices and browsers.
+o Cloud-based storage for user data and analysis results.
+• Mobile Application:
+o Camera integration for direct fingerprint image capture.
+o Lightweight and optimized for mobile processing.
+3. Non-Functional Requirements
+3.1. Performance
+• The application should process and analyze fingerprint images within 5 seconds for
+standard resolutions.
+• The model should achieve an initial accuracy of at least 93%, improving over time
+with user feedback.
+©Copyright Jean Bosco Nsekuye 2025 • +212687522465
+• jb.nsekuye@isicod.net
+©Copyright Jean Bosco Nsekuye 2025 • Jeanbosco.nsekuye@uit.ac.ma
+3.2. Scalability
+• The application should handle at least 1,000 concurrent users on the web platform.
+• The backend should support scaling for increased data storage and processing
+demands.
+3.3. Security
+• Implement encryption for data transmission and storage.
+• Ensure compliance with data protection regulations (e.g., GDPR, CCPA).
+• Regularly update the application to address security vulnerabilities.
+3.4. Usability
+• Provide a clean and intuitive user interface.
+• Include tooltips, tutorials, and documentation for ease of use.
+• Ensure accessibility for users with disabilities.
+4. Technical Specifications
+4.1. Technology Stack
+• Frontend: React.js (web), Electron (desktop), React Native (mobile).
+• Backend: Python with Fast API or Flask/Django; or Node.js with Express.js.
+• Database: PostgreSQL or MongoDB for user data, feedback, and analysis history.
+• Interactive Reinforcement Learning Framework: TensorFlow, PyTorch, or
+OpenAI Gym with human-in-the-loop integration.
+• Cloud Services: AWS, Google Cloud, or Azure for hosting, storage, and model
+training.
+4.2 Feedback Integration
+• Reward Function Modification: Use libraries like Stable Baselines3 (SB3) or RLlib
+to modify the reward function dynamically.
+• Natural Language Processing (NLP): Use pre-trained models like BERT or
+RoBERTa to process textual feedback.
+4.3 Model Updates
+• Incremental Learning: Implement techniques like Elastic Weight Consolidation
+(EWC) or Experience Replay to allow the model to learn continuously without
+forgetting previous knowledge.
+• Transfer Learning: Fine-tune a pre-trained model on new data provided by experts.
+©Copyright Jean Bosco Nsekuye 2025 • +212687522465
+• jb.nsekuye@isicod.net
+©Copyright Jean Bosco Nsekuye 2025 • Jeanbosco.nsekuye@uit.ac.ma
+4.4 User and Expert Interfaces
+• Develop a web-based dashboard where users input their feedbacks regarding the
+model predictions, and allow experts to validate or correct them. Allow experts also
+to upload images, view predictions, and provide feedback.
+4.5. Integration
+• Use APIs for cross-platform synchronization and data sharing.
+• Implement feedback loops to update the model in real-time or periodically.
+4.6. Deployment
+• Desktop: Installable via executable files for Windows, macOS, and Linux.
+• Web: Hosted on a cloud platform with a custom domain.
+• Mobile: Available on Google Play Store and Apple App Store.
+5. Development Timeline
+• Phase 1: Research and planning (… weeks).
+• Phase 2: Interactive Reinforcement Learning (IRL) / Learning from Human
+Feedback (LHF) model development (…. weeks).
+• Phase 3: Application development (….weeks).
+• Phase 4: Testing and quality assurance (…. weeks).
+• Phase 5: Deployment and launch (…..weeks).
+6. Budget and Resources
+• Development Team: Machine learning engineers, full-stack developers, UI/UX
+designers, and QA testers.
+• Hosting and Maintenance: Allocate budget for cloud hosting and ongoing
+maintenance.
+• Data Management Efficient: Implement measures for minimizing the storage of data
+or deleting them after a certain period of time.
+7. Risks and Mitigation
+• Risk: Poor model accuracy due to insufficient or inconsistent user feedback.
+o Mitigation: Implement gamification or incentives for users to provide high-
+quality feedback. Or accept feedbacks after only being validated by a known
+expert.
+©Copyright Jean Bosco Nsekuye 2025 • +212687522465
+• jb.nsekuye@isicod.net
+©Copyright Jean Bosco Nsekuye 2025 • Jeanbosco.nsekuye@uit.ac.ma
+• Risk: Performance issues on low-end devices.
+o Mitigation: Optimize the application for lightweight performance and provide
+offline capabilities.
+• Risk: Privacy concerns related to fingerprint data.
+o Mitigation: Ensure strict compliance with data protection laws and implement
+robust encryption.
+9. Conclusion
+This document serves as a comprehensive guide for the development of a cross-platform
+application for fingerprint ridge classification and counting using Interactive
+Reinforcement Learning (IRL) or Learning from Human Feedback (LHF). By
+incorporating human feedback, the application will deliver a dynamic, accurate, and user-
+centric solution that improves over time.
+©Copyright Jean Bosco Nsekuye 2025 • +212687522465
+• jb.nsekuye@isicod.net

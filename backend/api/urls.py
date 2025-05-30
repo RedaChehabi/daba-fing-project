@@ -14,7 +14,13 @@ from .views import (
     admin_list_roles, admin_create_role, admin_update_role, admin_delete_role,
     admin_get_permissions, admin_get_user_groups,
     get_user_analysis_history, get_analysis_detail, delete_user_analysis, bulk_delete_user_analyses,
-    get_analytics_data, get_dashboard_stats
+    get_analytics_data, get_dashboard_stats,
+    # Export functionality
+    export_analysis_pdf, export_user_history_csv, export_bulk_analysis_pdf,
+    # Feedback system
+    submit_analysis_feedback, get_analysis_feedback, get_user_feedback_history,
+    # Fingerprint merging functionality
+    merge_fingerprint_parts, get_merged_fingerprints, analyze_merged_fingerprint
 )
 
 # Add these URLs to the existing urlpatterns
@@ -56,4 +62,19 @@ urlpatterns = [
     # Analytics and dashboard URLs
     path('admin/analytics/', get_analytics_data, name='get_analytics_data'),
     path('dashboard/stats/', get_dashboard_stats, name='get_dashboard_stats'),
+    
+    # Export functionality URLs
+    path('export/analysis/<int:analysis_id>/pdf/', export_analysis_pdf, name='export_analysis_pdf'),
+    path('export/user/history/csv/', export_user_history_csv, name='export_user_history_csv'),
+    path('export/bulk/pdf/', export_bulk_analysis_pdf, name='export_bulk_analysis_pdf'),
+    
+    # Feedback system URLs
+    path('feedback/submit/', submit_analysis_feedback, name='submit_analysis_feedback'),
+    path('feedback/analysis/<int:analysis_id>/', get_analysis_feedback, name='get_analysis_feedback'),
+    path('feedback/user/history/', get_user_feedback_history, name='get_user_feedback_history'),
+    
+    # Fingerprint merging URLs
+    path('fingerprint/merge/', merge_fingerprint_parts, name='merge_fingerprint_parts'),
+    path('fingerprint/merged/', get_merged_fingerprints, name='get_merged_fingerprints'),
+    path('fingerprint/merged/<int:merged_id>/analyze/', analyze_merged_fingerprint, name='analyze_merged_fingerprint'),
 ]
