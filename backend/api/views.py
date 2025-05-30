@@ -32,10 +32,10 @@ from django.http import HttpResponse
 from .image_processing import FingerprintImageProcessor, FingerprintMerger
 
 
-# --- Enhanced Analysis Function with Real Processing ---
+# --- Enhanced Analysis Function ---
 def perform_fingerprint_analysis(image_path):
     """
-    Perform real fingerprint analysis using computer vision algorithms
+    Perform fingerprint analysis using computer vision
     """
     import time
     import random
@@ -90,6 +90,32 @@ def perform_fingerprint_analysis(image_path):
         # Fallback to mock analysis if real processing fails
         print(f"Advanced analysis failed, falling back to mock: {str(e)}")
         return perform_mock_analysis_fallback(image_path)
+
+def perform_mock_analysis_fallback(image_path):
+    """
+    Fallback mock analysis function
+    """
+    import time
+    import random
+    
+    start_time = time.time()
+    time.sleep(random.uniform(0.3, 1.0))
+    end_time = time.time()
+    processing_time_taken = end_time - start_time
+
+    classifications = ["Whorl", "Loop", "Arch", "Tented Arch"]
+    return {
+        "classification": random.choice(classifications),
+        "ridge_count": random.randint(10, 30),
+        "confidence_score": round(random.uniform(0.85, 0.99), 3),
+        "processing_time": f"{processing_time_taken:.2f}s",
+        "analysis_details": {
+            "message": "Fallback mock analysis complete. Advanced processing temporarily unavailable.",
+            "model_type": "MockModel v0.1 (Fallback)",
+            "core_points": [{"x": random.randint(50,100), "y": random.randint(50,100)}],
+            "delta_points": [{"x": random.randint(150,200), "y": random.randint(150,200)}]
+        }
+    }
 
 
 def determine_classification(analysis_result):
@@ -155,32 +181,6 @@ def calculate_confidence_score(quality_metrics, analysis_result):
         print(f"Confidence calculation error: {str(e)}")
         return 0.75  # Default confidence
 
-
-def perform_mock_analysis_fallback(image_path):
-    """
-    Fallback mock analysis function
-    """
-    import time
-    import random
-    
-    start_time = time.time()
-    time.sleep(random.uniform(0.3, 1.0))
-    end_time = time.time()
-    processing_time_taken = end_time - start_time
-
-    classifications = ["Whorl", "Loop", "Arch", "Tented Arch"]
-    return {
-        "classification": random.choice(classifications),
-        "ridge_count": random.randint(10, 30),
-        "confidence_score": round(random.uniform(0.85, 0.99), 3),
-        "processing_time": f"{processing_time_taken:.2f}s",
-        "analysis_details": {
-            "message": "Fallback mock analysis complete. Advanced processing temporarily unavailable.",
-            "model_type": "MockModel v0.1 (Fallback)",
-            "core_points": [{"x": random.randint(50,100), "y": random.randint(50,100)}],
-            "delta_points": [{"x": random.randint(150,200), "y": random.randint(150,200)}]
-        }
-    }
 # --- End Enhanced Analysis Function ---
 
 class FingerprintAnalysisView(APIView):
@@ -2142,3 +2142,5 @@ def analyze_merged_fingerprint(request, merged_id):
             'detail': 'Failed to analyze merged fingerprint.',
             'status': 'error'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+

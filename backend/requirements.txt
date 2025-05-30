@@ -30,6 +30,3 @@ scipy==1.15.3  # Latest stable version
 scikit-image==0.25.2  # Latest stable version
 matplotlib==3.10.0  # Latest stable version
 scikit-learn==1.6.1  # Latest stable version
-# tensorflow==2.13.0  # Commented out - has vulnerabilities, not used in current implementation
-# transformers==4.46.2  # Commented out - has vulnerabilities, not used in current implementation
-# torch==2.5.1  # Commented out - has vulnerabilities, not used in current implementation
