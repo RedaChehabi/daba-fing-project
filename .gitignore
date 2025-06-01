@@ -41,6 +41,7 @@ logs/
 
 # User uploaded content
 media/
+Model/Dataset/
 uploads/frontend-desktop/dist/
 frontend-desktop/node_modules/
 frontend-web-backup/node_modules/
