@@ -82,8 +82,10 @@ const UploadScreen = ({ navigation }: any) => {
         name: 'fingerprint.jpg',
       } as any);
       
-      // Add additional metadata if needed
+      // Required metadata fields for validation
       formData.append('title', 'Mobile Upload');
+      formData.append('hand_type', 'Right'); // or Left depending on context
+      formData.append('finger_position', 'Thumb'); // e.g., Thumb, Index, etc.
       
       // Upload to backend
       const uploadResponse = await authService.uploadFingerprint(formData);

@@ -1,12 +1,53 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginRequest, RegisterRequest, AuthResponse, User } from '../types';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-// For React Native, localhost doesn't work. Use your computer's IP address
-// Find your IP with: `ipconfig getifaddr en0` (macOS) or `hostname -I` (Linux)
-// Or use your computer's network IP (check in System Preferences > Network)
-const API_BASE_URL = __DEV__ 
-  ? 'http://localhost:8000/api' // Default to localhost in development
-  : 'https://your-production-server.com/api'; // Your production API URL
+/*
+ * Resolve the API base URL for React-Native.  "localhost" only works when the
+ * JS bundle runs *inside* the same host machine (e.g. a web browser).  On a
+ * mobile device / emulator it maps back to the device itself, not your Mac.
+ *
+ * Rules we implement:
+ *   • If an explicit env var is provided (EXPO_PUBLIC_API_URL), always use it.
+ *   • On Android emulator we can reach the host through http://10.0.2.2
+ *   • On iOS simulator we can still use your Mac's LAN IP
+ *   • Fallback to localhost – useful when you run the web build
+ */
+
+const explicitApi = Constants.expoConfig?.extra?.API_URL || process.env.EXPO_PUBLIC_API_URL;
+
+const guessDevApi = () => {
+  // 1) Android emulator has a magic address to the host machine.
+  if (Platform.OS === 'android') {
+    return 'http://192.168.1.34:8000/api';
+  }
+
+  // 2) Try to extract the host of the Metro server which Expo embeds in the manifest.
+  const hostCandidate =
+    // Classic manifest during dev (expo start)
+    (Constants.manifest as any)?.debuggerHost?.split(':')?.[0] ||
+    // Modern Expo SDK 49+ (expoConfig.hostUri)
+    Constants.expoConfig?.hostUri?.split(':')?.[0] ||
+    // Fallback to IP embedded in manifest2 (EAS updates)
+    (Constants as any)?.manifest2?.extra?.expoGo?.developer?.hostUri?.split(':')?.[0] ||
+    null;
+
+  if (hostCandidate) {
+    return `http://${hostCandidate}:8000/api`;
+  }
+
+  // 3) Running in the web build or we couldn't guess – localhost works there.
+  return 'http://localhost:8000/api';
+};
+
+const API_BASE_URL = __DEV__
+  ? (explicitApi || guessDevApi())
+    : (explicitApi || 'http://192.168.1.34:8000/api');
+
+// Give us a heads-up in the console so we can verify quickly
+// eslint-disable-next-line no-console
+console.log('[API] base URL =', API_BASE_URL);
 
 class ApiService {
   private async getAuthToken(): Promise<string | null> {
@@ -36,18 +77,33 @@ class ApiService {
 
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
-        const response = await fetch(`${API_BASE_URL}/login/`, {
+      const response = await fetch(`${API_BASE_URL}/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
-      
+
+      const contentType = response.headers.get('content-type') || '';
+
+      // Try to parse JSON only if the server says it's JSON
+      const maybeJson = async () => {
+        if (contentType.includes('application/json')) {
+          try {
+            return await response.json();
+          } catch (_) {
+            return null;
+          }
+        }
+        return null;
+      };
+
+      const data = await maybeJson();
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || data.message || 'Login failed');
+        const message = data?.detail || data?.message || `HTTP ${response.status}`;
+        throw new Error(message || 'Login failed');
       }
       
-      const data = await response.json();
       await this.setAuthToken(data.token);
       return {
         token: data.token,
@@ -72,10 +128,24 @@ class ApiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
-      
-      const data = await response.json();
+
+      const contentType = response.headers.get('content-type') || '';
+      const maybeJson = async () => {
+        if (contentType.includes('application/json')) {
+          try {
+            return await response.json();
+          } catch (_) {
+            return null;
+          }
+        }
+        return null;
+      };
+
+      const data = await maybeJson();
+
       if (!response.ok) {
-        throw new Error(data.detail || data.message || 'Registration failed');
+        const message = data?.detail || data?.message || `HTTP ${response.status}`;
+        throw new Error(message || 'Registration failed');
       }
       
       await this.setAuthToken(data.token);
@@ -170,18 +240,18 @@ class ApiService {
         },
         body: JSON.stringify(profileData),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Failed to update profile');
       }
-      
+
       const data = await response.json();
       return {
         id: data.id,
         username: data.username,
         email: data.email,
-        role: data.role
+        role: data.role,
       };
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -193,13 +263,12 @@ class ApiService {
     try {
       const token = await this.getAuthToken();
       if (!token) return false;
-      
-      // Simple check - if token exists, assume authenticated
-      // You could add a verify endpoint on backend if needed
+
+      // Quick verification: hit a lightweight endpoint
       const response = await fetch(`${API_BASE_URL}/userprofile/`, {
         headers: { 'Authorization': `Token ${token}` },
       });
-      
+
       return response.ok;
     } catch (error) {
       console.error('Error checking authentication:', error);
@@ -207,20 +276,23 @@ class ApiService {
     }
   }
 
-  // Fingerprint analysis methods
+  // ------------ Fingerprint & analytics helpers ------------
+
   async uploadFingerprint(formData: FormData): Promise<any> {
     try {
       const token = await this.getAuthToken();
       if (!token) throw new Error('No auth token');
 
+      formData.append('title', 'Mobile Upload');
+      formData.append('hand_type', 'Right');      // or 'Left'
+      formData.append('finger_position', 'Thumb'); // e.g. Thumb, Index, …
+
       const response = await fetch(`${API_BASE_URL}/fingerprints/`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-        },
+        headers: { 'Authorization': `Token ${token}` },
         body: formData,
       });
-      
+
       if (!response.ok) throw new Error('Upload failed');
       return await response.json();
     } catch (error) {
@@ -242,7 +314,7 @@ class ApiService {
         },
         body: JSON.stringify({ fingerprint_id: fingerprintId }),
       });
-      
+
       if (!response.ok) throw new Error('Analysis failed');
       return await response.json();
     } catch (error) {
@@ -259,28 +331,26 @@ class ApiService {
       const response = await fetch(`${API_BASE_URL}/user/analysis-history/`, {
         headers: { 'Authorization': `Token ${token}` },
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `HTTP ${response.status}: Failed to get history`);
       }
-      
+
       const data = await response.json();
-      console.log('Analysis history response:', data);
-      
-      // Ensure we return the expected format
       return {
         history: data.history || [],
         total_count: data.total_count || 0,
-        status: data.status || 'success'
+        status: data.status || 'success',
       };
     } catch (error) {
       console.error('Error getting analysis history:', error);
-      throw new Error(`Failed to load analysis history: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to load analysis history: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
-  // Dashboard stats method to match other frontends
   async getDashboardStats(): Promise<any> {
     try {
       const token = await this.getAuthToken();
@@ -289,12 +359,12 @@ class ApiService {
       const response = await fetch(`${API_BASE_URL}/dashboard/stats/`, {
         headers: { 'Authorization': `Token ${token}` },
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `HTTP ${response.status}: Failed to get dashboard stats`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Error getting dashboard stats:', error);
@@ -302,7 +372,6 @@ class ApiService {
     }
   }
 
-  // Analytics data method for admin users
   async getAnalyticsData(): Promise<any> {
     try {
       const token = await this.getAuthToken();
@@ -311,12 +380,12 @@ class ApiService {
       const response = await fetch(`${API_BASE_URL}/admin/analytics/`, {
         headers: { 'Authorization': `Token ${token}` },
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `HTTP ${response.status}: Failed to get analytics data`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Error getting analytics data:', error);

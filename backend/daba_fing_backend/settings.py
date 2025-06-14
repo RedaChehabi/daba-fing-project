@@ -32,7 +32,11 @@ if not SECRET_KEY:
     else:
         raise ValueError("SECRET_KEY environment variable is required for production!")
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,192.168.1.33,0.0.0.0').split(',')
+if DEBUG:
+    # In development we accept requests from any host (mobile devices, emulators, LAN IPs)
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Application definition
 INSTALLED_APPS = [
