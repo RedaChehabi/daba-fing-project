@@ -5,7 +5,7 @@ import { LoginRequest, RegisterRequest, AuthResponse, User } from '../types';
 // Find your IP with: `ipconfig getifaddr en0` (macOS) or `hostname -I` (Linux)
 // Or use your computer's network IP (check in System Preferences > Network)
 const API_BASE_URL = __DEV__ 
-  ? 'http://192.168.1.33:8000/api' // Your actual local network IP
+  ? 'http://localhost:8000/api' // Default to localhost in development
   : 'https://your-production-server.com/api'; // Your production API URL
 
 class ApiService {
@@ -36,17 +36,18 @@ class ApiService {
 
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/login/`, {
+        const response = await fetch(`${API_BASE_URL}/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
       
-      const data = await response.json();
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.detail || data.message || 'Login failed');
       }
       
+      const data = await response.json();
       await this.setAuthToken(data.token);
       return {
         token: data.token,
@@ -57,7 +58,10 @@ class ApiService {
       };
     } catch (error) {
       console.error('Login error:', error);
-      throw new Error('Login failed. Please check your credentials.');
+      if (error instanceof TypeError && error.message === 'Network request failed') {
+        throw new Error('Cannot connect to the server. Please check your internet connection and try again.');
+      }
+      throw error;
     }
   }
 

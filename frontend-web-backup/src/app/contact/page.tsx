@@ -62,7 +62,7 @@ export default function ContactPage() {
             <div className="space-y-4">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Contact Us</h1>
               <p className="text-muted-foreground md:text-xl">
-                Have questions about DabaFing? We're here to help. Fill out the form or use our contact information
+                Have questions about DabaFing? We&apos;re here to help. Fill out the form or use our contact information
                 below.
               </p>
             </div>
@@ -72,8 +72,7 @@ export default function ContactPage() {
                 <Mail className="h-6 w-6 text-primary" />
                 <div>
                   <h3 className="font-medium">Email</h3>
-                  <p className="text-muted-foreground">jb.nsekuye@isicod.net</p>
-                  <p className="text-muted-foreground">jeanbosco.nsekuye@uit.ac.ma</p>
+                  <p className="text-muted-foreground">mail@dabafing.com</p>
                 </div>
               </div>
 
@@ -81,7 +80,7 @@ export default function ContactPage() {
                 <Phone className="h-6 w-6 text-primary" />
                 <div>
                   <h3 className="font-medium">Phone</h3>
-                  <p className="text-muted-foreground">+212 687 522 465</p>
+                  <p className="text-muted-foreground">+2126XXXXXX</p>
                 </div>
               </div>
 
@@ -89,7 +88,7 @@ export default function ContactPage() {
                 <MapPin className="h-6 w-6 text-primary" />
                 <div>
                   <h3 className="font-medium">Address</h3>
-                  <p className="text-muted-foreground">ISICOD, Tangier, Morocco</p>
+                  <p className="text-muted-foreground"> Morocco</p>
                 </div>
               </div>
             </div>
@@ -103,7 +102,7 @@ export default function ContactPage() {
                 </div>
                 <h3 className="text-xl font-bold">Message Sent!</h3>
                 <p className="text-muted-foreground">
-                  Thank you for contacting us. We'll get back to you as soon as possible.
+                  Thank you for contacting us. We&apos;ll get back to you as soon as possible.
                 </p>
                 <Button onClick={() => setIsSubmitted(false)} variant="outline">
                   Send Another Message

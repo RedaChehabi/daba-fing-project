@@ -24,6 +24,7 @@ import {
   Cell,
   AreaChart,
   Area,
+  Legend,
 } from "recharts";
 import { 
   Activity, 
@@ -39,17 +40,50 @@ import {
   AlertTriangle,
   CheckCircle,
   Calendar,
-  Filter
+  Filter,
+  Scan,
+  Shield,
+  ChartArea,
+  Database,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 // TypeScript interfaces
 interface AnalyticsMetric {
   title: string;
-  value: string | number;
-  change: number;
-  changeType: 'increase' | 'decrease';
+  value: string;
+  change?: string;
+  changeType?: 'increase' | 'decrease' | 'neutral';
   icon: React.ReactNode;
-  description: string;
+  description?: string;
+}
+
+interface AnalyticsData {
+  users: {
+    total: number;
+    by_role: {
+      admin: number;
+      expert: number;
+      regular: number;
+    };
+    growth: Array<{month: string; users: number}>;
+  };
+  analyses: {
+    total: number;
+    completed: number;
+    success_rate: number;
+    avg_processing_time: string;
+  };
+  uploads: {
+    total: number;
+    monthly: Array<{month: string; scans: number}>;
+  };
+  system: {
+    status: string;
+    uptime: string;
+    last_backup: string;
+  };
 }
 
 interface ChartDataPoint {
@@ -89,48 +123,6 @@ interface ExpertAnalyticsData {
   avgResponseTime: number;
   accuracy: number;
 }
-
-// Sample data
-const userActivityData: UserActivityData[] = [
-  { month: "Jan", activeUsers: 120, newUsers: 45, returningUsers: 75 },
-  { month: "Feb", activeUsers: 150, newUsers: 60, returningUsers: 90 },
-  { month: "Mar", activeUsers: 180, newUsers: 70, returningUsers: 110 },
-  { month: "Apr", activeUsers: 210, newUsers: 85, returningUsers: 125 },
-  { month: "May", activeUsers: 250, newUsers: 95, returningUsers: 155 },
-  { month: "Jun", activeUsers: 300, newUsers: 110, returningUsers: 190 },
-];
-
-const scanAnalyticsData: ScanAnalyticsData[] = [
-  { month: "Jan", uploaded: 423, analyzed: 350, pending: 50, failed: 23 },
-  { month: "Feb", uploaded: 530, analyzed: 460, pending: 45, failed: 25 },
-  { month: "Mar", uploaded: 702, analyzed: 650, pending: 35, failed: 17 },
-  { month: "Apr", uploaded: 721, analyzed: 700, pending: 15, failed: 6 },
-  { month: "May", uploaded: 840, analyzed: 790, pending: 30, failed: 20 },
-  { month: "Jun", uploaded: 950, analyzed: 900, pending: 25, failed: 25 },
-];
-
-const systemPerformanceData: SystemPerformanceData[] = [
-  { time: "00:00", cpuUsage: 45, memoryUsage: 62, diskUsage: 78, responseTime: 120 },
-  { time: "04:00", cpuUsage: 32, memoryUsage: 58, diskUsage: 78, responseTime: 95 },
-  { time: "08:00", cpuUsage: 68, memoryUsage: 72, diskUsage: 79, responseTime: 180 },
-  { time: "12:00", cpuUsage: 85, memoryUsage: 85, diskUsage: 80, responseTime: 220 },
-  { time: "16:00", cpuUsage: 92, memoryUsage: 88, diskUsage: 81, responseTime: 250 },
-  { time: "20:00", cpuUsage: 75, memoryUsage: 80, diskUsage: 82, responseTime: 190 },
-];
-
-const expertAnalyticsData: ExpertAnalyticsData[] = [
-  { expert: "Dr. Smith", casesAssigned: 45, casesCompleted: 42, avgResponseTime: 2.5, accuracy: 98.5 },
-  { expert: "Dr. Johnson", casesAssigned: 38, casesCompleted: 35, avgResponseTime: 3.2, accuracy: 97.8 },
-  { expert: "Dr. Williams", casesAssigned: 52, casesCompleted: 48, avgResponseTime: 2.8, accuracy: 99.1 },
-  { expert: "Dr. Brown", casesAssigned: 41, casesCompleted: 39, avgResponseTime: 3.5, accuracy: 96.9 },
-];
-
-const analysisTypeData = [
-  { name: "Minutiae", value: 45, color: "hsl(var(--chart-1))" },
-  { name: "Ridge Pattern", value: 30, color: "hsl(var(--chart-2))" },
-  { name: "Core Points", value: 15, color: "hsl(var(--chart-3))" },
-  { name: "Delta Points", value: 10, color: "hsl(var(--chart-4))" },
-];
 
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
@@ -177,56 +169,63 @@ export default function AnalyticsPage() {
     fetchData();
   }, [timeRange]);
 
-  const metrics: AnalyticsMetric[] = [
+  // Helper function to format numbers
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  };
+
+  const metrics: AnalyticsMetric[] = analyticsData ? [
     {
-      title: "User Growth",
-      value: "+24%",
-      change: 24,
+      title: "Total Users",
+      value: formatNumber(analyticsData.users.total),
+      change: "+12%",
       changeType: 'increase',
-      icon: <Users className="h-4 w-4" />,
-      description: "From last quarter"
+      icon: <Users className="h-5 w-5" />,
+      description: "Registered users in the system"
     },
     {
-      title: "Scan Volume",
-      value: "950",
-      change: 13,
+      title: "Total Analyses",
+      value: formatNumber(analyticsData.analyses.total),
+      change: `${analyticsData.analyses.success_rate}%`,
       changeType: 'increase',
-      icon: <Fingerprint className="h-4 w-4" />,
-      description: "This month"
-    },
-    {
-      title: "System Load",
-      value: "42%",
-      change: -5,
-      changeType: 'decrease',
-      icon: <Server className="h-4 w-4" />,
-      description: "Average across servers"
-    },
-    {
-      title: "Response Time",
-      value: "1.2s",
-      change: -8,
-      changeType: 'decrease',
-      icon: <Clock className="h-4 w-4" />,
-      description: "Average response time"
+      icon: <Activity className="h-5 w-5" />,
+      description: "Fingerprint analyses completed"
     },
     {
       title: "Success Rate",
-      value: "97.3%",
-      change: 2.1,
+      value: `${analyticsData.analyses.success_rate}%`,
+      change: "+2.3%",
       changeType: 'increase',
-      icon: <CheckCircle className="h-4 w-4" />,
-      description: "Analysis accuracy"
+      icon: <TrendingUp className="h-5 w-5" />,
+      description: "Analysis accuracy rate"
     },
     {
-      title: "Expert Efficiency",
-      value: "94.2%",
-      change: 1.5,
-      changeType: 'increase',
-      icon: <TrendingUp className="h-4 w-4" />,
-      description: "Case completion rate"
+      title: "System Status",
+      value: analyticsData.system.status,
+      change: analyticsData.system.uptime,
+      changeType: 'neutral',
+      icon: <Shield className="h-5 w-5" />,
+      description: "Current system health"
     },
-  ];
+    {
+      title: "Total Uploads",
+      value: formatNumber(analyticsData.uploads.total),
+      change: "+8.2%",
+      changeType: 'increase',
+      icon: <Database className="h-5 w-5" />,
+      description: "Total fingerprint uploads"
+    },
+    {
+      title: "Processing Time",
+      value: analyticsData.analyses.avg_processing_time,
+      change: "-12ms",
+      changeType: 'increase',
+      icon: <ChartArea className="h-5 w-5" />,
+      description: "Average analysis time"
+    }
+  ] : [];
 
   const formatTooltipValue = (value: any, name: string) => {
     if (name.includes('Time')) return `${value}ms`;
@@ -237,14 +236,44 @@ export default function AnalyticsPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground">Detailed analytics and system performance metrics.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Analytics</h1>
+            <p className="text-muted-foreground">Detailed analytics and system performance metrics.</p>
+          </div>
         </div>
         <Alert>
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {error}. Please check your permissions and try again.
+          </AlertDescription>
         </Alert>
+      </div>
+    );
+  }
+
+  if (loading || !analyticsData) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Analytics</h1>
+            <p className="text-muted-foreground">Loading analytics data...</p>
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-4 w-20" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-3 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -330,35 +359,35 @@ export default function AnalyticsPage() {
               <CardContent>
                 {loading ? (
                   <Skeleton className="h-[300px] w-full" />
-                ) : (
+                ) : analyticsData?.users?.growth?.length > 0 ? (
                   <ChartContainer
                     className="h-[300px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={userActivityData}>
+                      <AreaChart data={analyticsData.users.growth}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
                         <YAxis />
                         <Tooltip formatter={formatTooltipValue} />
                         <Area 
                           type="monotone" 
-                          dataKey="activeUsers" 
+                          dataKey="users" 
                           stackId="1" 
                           stroke="var(--color-activeUsers)" 
                           fill="var(--color-activeUsers)" 
                           fillOpacity={0.6}
                         />
-                        <Area 
-                          type="monotone" 
-                          dataKey="newUsers" 
-                          stackId="2" 
-                          stroke="var(--color-newUsers)" 
-                          fill="var(--color-newUsers)" 
-                          fillOpacity={0.6}
-                        />
                       </AreaChart>
                     </ResponsiveContainer>
                   </ChartContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-center">
+                    <div>
+                      <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-2">No user activity data available</p>
+                      <p className="text-sm text-muted-foreground">Data will appear here when users are more active</p>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -371,21 +400,28 @@ export default function AnalyticsPage() {
               <CardContent>
                 {loading ? (
                   <Skeleton className="h-[300px] w-full" />
-                ) : (
+                ) : analyticsData?.users?.growth?.length > 0 ? (
                   <ChartContainer
                     className="h-[300px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
-                      <RechartsBarChart data={userActivityData}>
+                      <RechartsBarChart data={analyticsData.users.growth}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
                         <YAxis />
                         <Tooltip formatter={formatTooltipValue} />
-                        <Bar dataKey="newUsers" fill="var(--color-newUsers)" radius={4} />
-                        <Bar dataKey="returningUsers" fill="var(--color-returningUsers)" radius={4} />
+                        <Bar dataKey="users" fill="var(--color-users)" radius={4} />
                       </RechartsBarChart>
                     </ResponsiveContainer>
                   </ChartContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-center">
+                    <div>
+                      <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-2">No user engagement data available</p>
+                      <p className="text-sm text-muted-foreground">User retention metrics will appear here when there's more activity</p>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -403,22 +439,28 @@ export default function AnalyticsPage() {
               <CardContent>
                 {loading ? (
                   <Skeleton className="h-[300px] w-full" />
-                ) : (
+                ) : analyticsData?.uploads?.monthly?.length > 0 ? (
                   <ChartContainer
                     className="h-[300px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={scanAnalyticsData}>
+                      <LineChart data={analyticsData.uploads.monthly}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
                         <YAxis />
                         <Tooltip formatter={formatTooltipValue} />
-                        <Line type="monotone" dataKey="uploaded" stroke="var(--color-uploaded)" strokeWidth={2} />
-                        <Line type="monotone" dataKey="analyzed" stroke="var(--color-analyzed)" strokeWidth={2} />
-                        <Line type="monotone" dataKey="pending" stroke="var(--color-pending)" strokeWidth={2} />
+                        <Line type="monotone" dataKey="scans" stroke="var(--color-scans)" strokeWidth={2} />
                       </LineChart>
                     </ResponsiveContainer>
                   </ChartContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-center">
+                    <div>
+                      <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-2">No scan volume data available</p>
+                      <p className="text-sm text-muted-foreground">Upload trends will appear here when there are more uploads</p>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -431,21 +473,28 @@ export default function AnalyticsPage() {
               <CardContent>
                 {loading ? (
                   <Skeleton className="h-[300px] w-full" />
-                ) : (
+                ) : analyticsData?.uploads?.monthly?.length > 0 ? (
                   <ChartContainer
                     className="h-[300px]"
                   >
                     <ResponsiveContainer width="100%" height="100%">
-                      <RechartsBarChart data={scanAnalyticsData}>
+                      <RechartsBarChart data={analyticsData.uploads.monthly}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
                         <YAxis />
                         <Tooltip formatter={formatTooltipValue} />
-                        <Bar dataKey="analyzed" fill="var(--color-analyzed)" radius={4} />
-                        <Bar dataKey="failed" fill="var(--color-failed)" radius={4} />
+                        <Bar dataKey="scans" fill="var(--color-scans)" radius={4} />
                       </RechartsBarChart>
                     </ResponsiveContainer>
                   </ChartContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-center">
+                    <div>
+                      <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-2">No processing efficiency data available</p>
+                      <p className="text-sm text-muted-foreground">Success/failure metrics will appear here when analysis tracking is enhanced</p>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -463,21 +512,13 @@ export default function AnalyticsPage() {
               {loading ? (
                 <Skeleton className="h-[400px] w-full" />
               ) : (
-                <ChartContainer
-                  className="h-[400px]"
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={systemPerformanceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="time" />
-                      <YAxis />
-                      <Tooltip formatter={formatTooltipValue} />
-                      <Line type="monotone" dataKey="cpuUsage" stroke="var(--color-cpuUsage)" strokeWidth={2} />
-                      <Line type="monotone" dataKey="memoryUsage" stroke="var(--color-memoryUsage)" strokeWidth={2} />
-                      <Line type="monotone" dataKey="diskUsage" stroke="var(--color-diskUsage)" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                <div className="h-[400px] flex items-center justify-center text-center">
+                  <div>
+                    <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-2">No system performance data available</p>
+                    <p className="text-sm text-muted-foreground">System monitoring will appear here when implemented</p>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -495,20 +536,13 @@ export default function AnalyticsPage() {
                 {loading ? (
                   <Skeleton className="h-[300px] w-full" />
                 ) : (
-                  <ChartContainer
-                    className="h-[300px]"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsBarChart data={expertAnalyticsData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="expert" angle={-45} textAnchor="end" height={80} />
-                        <YAxis />
-                        <Tooltip formatter={formatTooltipValue} />
-                        <Bar dataKey="casesAssigned" fill="var(--color-casesAssigned)" radius={4} />
-                        <Bar dataKey="casesCompleted" fill="var(--color-casesCompleted)" radius={4} />
-                      </RechartsBarChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
+                  <div className="h-[300px] flex items-center justify-center text-center">
+                    <div>
+                      <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-2">No expert performance data available</p>
+                      <p className="text-sm text-muted-foreground">Expert analytics will appear here when expert review system is implemented</p>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -526,24 +560,11 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
                 ) : (
-                  expertAnalyticsData.map((expert, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{expert.expert}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {expert.casesCompleted}/{expert.casesAssigned} cases completed
-                        </p>
-                      </div>
-                      <div className="text-right space-y-1">
-                        <Badge variant={expert.accuracy > 98 ? "default" : "secondary"}>
-                          {expert.accuracy}% accuracy
-                        </Badge>
-                        <p className="text-xs text-muted-foreground">
-                          {expert.avgResponseTime}h avg response
-                        </p>
-                      </div>
-                    </div>
-                  ))
+                  <div className="text-center py-8">
+                    <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-2">No expert data available</p>
+                    <p className="text-sm text-muted-foreground">Expert efficiency metrics will appear here when experts start reviewing cases</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -562,29 +583,13 @@ export default function AnalyticsPage() {
                 {loading ? (
                   <Skeleton className="h-[300px] w-full" />
                 ) : (
-                  <ChartContainer
-                    className="h-[300px]"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={analysisTypeData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {analysisTypeData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
+                  <div className="h-[300px] flex items-center justify-center text-center">
+                    <div>
+                      <ChartArea className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-2">No analysis type data available</p>
+                      <p className="text-sm text-muted-foreground">Analysis method distribution will appear here when more analyses are completed</p>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -602,26 +607,11 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
                 ) : (
-                  analysisTypeData.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-4 h-4 rounded-full" 
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <div>
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Primary analysis method
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold">{item.value}%</p>
-                        <p className="text-xs text-muted-foreground">of total</p>
-                      </div>
-                    </div>
-                  ))
+                  <div className="text-center py-8">
+                    <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-2">No detailed analysis data available</p>
+                    <p className="text-sm text-muted-foreground">Method details will appear here when analysis tracking is implemented</p>
+                  </div>
                 )}
               </CardContent>
             </Card>

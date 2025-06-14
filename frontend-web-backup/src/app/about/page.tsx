@@ -362,7 +362,7 @@ export default function AboutPage() {
 
         <div className="border-t pt-8">
           <p className="text-sm text-muted-foreground">
-            ©Copyright Jean Bosco Nsekuye 2025 • Jeanbosco.nsekuye@uit.ac.ma • jb.nsekuye@isicod.net • +212687522465
+            ©Copyright DabaFing 2025 • mail@email.com • +2126XXXXXXXX
           </p>
         </div>
       </div>

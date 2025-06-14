@@ -1,4 +1,6 @@
 # File: docker-compose.yml
+version: "3.8"
+
 services:
   db:
     image: postgres:17
@@ -14,9 +16,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
@@ -28,6 +34,15 @@ services:
       db:
         condition: service_healthy
     restart: always
+    networks:
+      - app-network
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   postgres_data:

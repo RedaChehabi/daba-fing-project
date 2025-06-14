@@ -28,7 +28,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Load real report data from analytics API
+  // Load report data from analytics API
   useEffect(() => {
     const fetchReportData = async () => {
       try {
@@ -41,6 +41,7 @@ export default function ReportsPage() {
           return;
         }
 
+        // Use the same analytics endpoint as the Analytics page
         const response = await fetch('http://localhost:8000/api/admin/analytics/', {
           headers: {
             'Authorization': `Token ${token}`,
@@ -55,9 +56,10 @@ export default function ReportsPage() {
         const data = await response.json();
         const analyticsData = data.analytics;
         
+        // Transform analytics data for reports format
         setReportData({
           userActivity: analyticsData.uploads.monthly || [],
-          systemPerformance: [],
+          systemPerformance: [], // No system performance data yet
           totalUploads: analyticsData.uploads.total || 0,
           verifications: analyticsData.analyses.completed || 0,
           activeUsers: analyticsData.users.total || 0,
@@ -66,6 +68,7 @@ export default function ReportsPage() {
       } catch (err) {
         console.error('Error loading report data:', err)
         setError('Failed to load reports data')
+        // Set empty data on error
         setReportData({
           userActivity: [],
           systemPerformance: [],
@@ -83,6 +86,7 @@ export default function ReportsPage() {
   }, [dateRange])
 
   const handleExport = () => {
+    // TODO: Implement export functionality with real data
     console.log("Exporting report for:", dateRange)
   }
 
@@ -129,21 +133,41 @@ export default function ReportsPage() {
               <CardDescription>Overview of uploads and verifications over time</CardDescription>
             </CardHeader>
             <CardContent className="px-2">
-              <ChartContainer
-                className="h-[300px]"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={reportData?.userActivity}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="uploads" fill="var(--color-uploads)" />
-                    <Bar dataKey="verifications" fill="var(--color-verifications)" />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              {loading ? (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-sm text-muted-foreground">Loading reports data...</div>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-sm text-destructive mb-2">{error}</div>
+                    <div className="text-xs text-muted-foreground">Please check your permissions and try again</div>
+                  </div>
+                </div>
+              ) : reportData?.userActivity?.length > 0 ? (
+                <ChartContainer className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsBarChart data={reportData.userActivity}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="scans" fill="var(--color-uploads)" name="Uploads" />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="text-center">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <div className="text-sm text-muted-foreground mb-2">No activity data available</div>
+                    <div className="text-xs text-muted-foreground">Upload activity will appear here when there are more uploads</div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -198,21 +222,21 @@ export default function ReportsPage() {
               <CardDescription>API latency and processing time metrics</CardDescription>
             </CardHeader>
             <CardContent className="px-2">
-              <ChartContainer
-                className="h-[300px]"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={reportData?.systemPerformance}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="apiLatency" fill="var(--color-apiLatency)" />
-                    <Bar dataKey="processingTime" fill="var(--color-processingTime)" />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              {loading ? (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-sm text-muted-foreground">Loading performance data...</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="text-center">
+                    <BarChart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <div className="text-sm text-muted-foreground mb-2">No system performance data available</div>
+                    <div className="text-xs text-muted-foreground">Performance metrics will appear here when system monitoring is implemented</div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

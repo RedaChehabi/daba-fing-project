@@ -1,0 +1,33 @@
+{
+  "name": "daba-fing-project",
+  "version": "1.0.0",
+  "description": "DabaFing - Advanced Fingerprint Analysis System",
+  "private": true,
+  "scripts": {
+    "dev": "cd frontend-desktop && npm run dev",
+    "dev:desktop": "cd frontend-desktop && npm run dev",
+    "dev:mobile": "cd frontend-mobile && npm run dev",
+    "dev:electron": "cd frontend-desktop && npm run electron-dev",
+    "build:desktop": "cd frontend-desktop && npm run build",
+    "build:electron": "cd frontend-desktop && npm run electron-pack",
+    "build:mobile": "cd frontend-mobile && npm run build",
+    "install:all": "cd frontend-desktop && npm install && cd ../frontend-mobile && npm install",
+    "clean:all": "cd frontend-desktop && npm run clean && cd ../frontend-mobile && npm run clean",
+    "start:backend": "cd backend && python manage.py runserver",
+    "setup": "npm run install:all"
+  },
+  "workspaces": [
+    "frontend-desktop",
+    "frontend-mobile"
+  ],
+  "keywords": [
+    "fingerprint",
+    "analysis",
+    "desktop",
+    "mobile",
+    "electron",
+    "nextjs"
+  ],
+  "author": "DabaFing Team",
+  "license": "PROPRIETARY"
+} 

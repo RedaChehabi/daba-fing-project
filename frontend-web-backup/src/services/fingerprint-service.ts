@@ -54,7 +54,7 @@ const fingerprintService = {
     console.log("fingerprintService.uploadFingerprint called with:", formData);
     
     try {
-      const response = await api.post('/fingerprints/', formData, {
+      const response = await api.post('/api/fingerprints/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -76,7 +76,7 @@ const fingerprintService = {
     console.log(`fingerprintService.analyzeFingerprint called for ID: ${fingerprintId}`);
     
     try {
-      const response = await api.post('/fingerprint/analyze/', { 
+      const response = await api.post('/api/fingerprint/analyze/', { 
         fingerprint_id: fingerprintId 
       });
       console.log("Analysis result:", response.data);
@@ -92,7 +92,7 @@ const fingerprintService = {
    */
   async getFingerprints() {
     try {
-      const response = await api.get('/fingerprints/');
+      const response = await api.get('/api/fingerprints/');
       return response.data;
     } catch (error) {
       console.error("Error fetching fingerprints:", error);
@@ -105,7 +105,7 @@ const fingerprintService = {
    */
   async getFingerprintDetails(fingerprintId: number) {
     try {
-      const response = await api.get(`/fingerprints/${fingerprintId}/`);
+      const response = await api.get(`/api/fingerprints/${fingerprintId}/`);
       return response.data;
     } catch (error) {
       console.error("Error fetching fingerprint details:", error);

@@ -40,7 +40,7 @@ interface UserData {
 // Authentication services
 export const authService = {
   login: async (username: string, password: string): Promise<LoginResponse> => {
-    const response = await api.post<LoginResponse>('/login/', { username, password });
+    const response = await api.post<LoginResponse>('/api/login/', { username, password });
     // Store token and basic user data after successful login
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
@@ -57,7 +57,7 @@ export const authService = {
 
   register: async (username: string, email: string, password: string): Promise<LoginResponse> => {
     const userData = { username, email, password };
-    const response = await api.post<LoginResponse>('/register/', userData);
+    const response = await api.post<LoginResponse>('/api/register/', userData);
     // Store token and basic user data after successful registration
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
@@ -73,7 +73,7 @@ export const authService = {
   },
 
   getProfile: async (): Promise<UserData> => { // Assuming profile endpoint returns UserData structure
-    const response = await api.get<UserData>('/userprofile/'); // Changed from /profile/ to match views.py
+    const response = await api.get<UserData>('/api/userprofile/'); // Changed from /profile/ to match views.py
     return response.data;
   },
 
@@ -107,7 +107,7 @@ export const authService = {
 // Fingerprint services (remains the same)
 export const fingerprintService = {
   uploadFingerprint: async (formData: FormData) => {
-    const response = await api.post('/fingerprints/', formData, {
+    const response = await api.post('/api/fingerprints/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -116,17 +116,17 @@ export const fingerprintService = {
   },
 
   getFingerprints: async () => {
-    const response = await api.get('/fingerprints/');
+    const response = await api.get('/api/fingerprints/');
     return response.data;
   },
 
   getFingerprint: async (id: number) => {
-    const response = await api.get(`/fingerprints/${id}/`);
+    const response = await api.get(`/api/fingerprints/${id}/`);
     return response.data;
   },
 
   analyzeFingerprint: async (fingerprintId: number) => {
-    const response = await api.post('/fingerprint/analyze/', { fingerprint_id: fingerprintId });
+    const response = await api.post('/api/fingerprint/analyze/', { fingerprint_id: fingerprintId });
     return response.data;
   },
 };
@@ -172,25 +172,25 @@ interface ExpertApplicationReviewResponse {
 export const expertApplicationService = {
   // Submit expert application
   submit: async (applicationData: ExpertApplicationSubmission): Promise<ExpertApplicationSubmitResponse> => {
-    const response = await api.post<ExpertApplicationSubmitResponse>('/expert-application/submit/', applicationData);
+    const response = await api.post<ExpertApplicationSubmitResponse>('/api/expert-application/submit/', applicationData);
     return response.data;
   },
 
   // Get user's expert application status
   getStatus: async (): Promise<ExpertApplication> => {
-    const response = await api.get<ExpertApplication>('/expert-application/status/');
+    const response = await api.get<ExpertApplication>('/api/expert-application/status/');
     return response.data;
   },
 
   // Get all expert applications (admin only)
   getAll: async (): Promise<{ applications: ExpertApplication[]; total_count: number }> => {
-    const response = await api.get<{ applications: ExpertApplication[]; total_count: number }>('/expert-applications/');
+    const response = await api.get<{ applications: ExpertApplication[]; total_count: number }>('/api/expert-applications/');
     return response.data;
   },
 
   // Review expert application (admin only)
   review: async (applicationId: number, reviewData: ExpertApplicationReview): Promise<ExpertApplicationReviewResponse> => {
-    const response = await api.post<ExpertApplicationReviewResponse>(`/expert-application/${applicationId}/review/`, reviewData);
+    const response = await api.post<ExpertApplicationReviewResponse>(`/api/expert-application/${applicationId}/review/`, reviewData);
     return response.data;
   },
 };
@@ -261,7 +261,7 @@ interface BulkDeleteResponse {
 // User Management (Admin only)
 export const adminService = {
   listUsers: async (): Promise<UserListResponse> => {
-    const response = await api.get<UserListResponse>('/admin/users/');
+    const response = await api.get<UserListResponse>('/api/admin/users/');
     return response.data;
   },
 
@@ -273,12 +273,12 @@ export const adminService = {
     password: string;
     role: string;
   }): Promise<CreateUserResponse> => {
-    const response = await api.post<CreateUserResponse>('/admin/users/create/', userData);
+    const response = await api.post<CreateUserResponse>('/api/admin/users/create/', userData);
     return response.data;
   },
 
   getUser: async (userId: number): Promise<UserDetailResponse> => {
-    const response = await api.get<UserDetailResponse>(`/admin/users/${userId}/`);
+    const response = await api.get<UserDetailResponse>(`/api/admin/users/${userId}/`);
     return response.data;
   },
 
@@ -290,23 +290,23 @@ export const adminService = {
     role?: string;
     is_active?: boolean;
   }): Promise<UpdateUserResponse> => {
-    const response = await api.put<UpdateUserResponse>(`/admin/users/${userId}/update/`, userData);
+    const response = await api.put<UpdateUserResponse>(`/api/admin/users/${userId}/update/`, userData);
     return response.data;
   },
 
   deleteUser: async (userId: number): Promise<DeleteUserResponse> => {
-    const response = await api.delete<DeleteUserResponse>(`/admin/users/${userId}/delete/`);
+    const response = await api.delete<DeleteUserResponse>(`/api/admin/users/${userId}/delete/`);
     return response.data;
   },
 
   bulkDeleteUsers: async (userIds: number[]): Promise<BulkDeleteResponse> => {
-    const response = await api.post<BulkDeleteResponse>('/admin/users/bulk-delete/', { user_ids: userIds });
+    const response = await api.post<BulkDeleteResponse>('/api/admin/users/bulk-delete/', { user_ids: userIds });
     return response.data;
   },
 
   exportUsers: async (): Promise<UserListResponse> => {
     // This would need to be implemented on the backend if needed
-    const response = await api.get<UserListResponse>('/admin/users/', { 
+    const response = await api.get<UserListResponse>('/api/admin/users/', { 
       params: { format: 'csv' } 
     });
     return response.data;
@@ -384,7 +384,7 @@ interface UserGroupsResponse {
 // Role Management API
 export const roleService = {
   listRoles: async (): Promise<RoleListResponse> => {
-    const response = await api.get<RoleListResponse>('/admin/roles/');
+    const response = await api.get<RoleListResponse>('/api/admin/roles/');
     return response.data;
   },
 
@@ -396,7 +396,7 @@ export const roleService = {
     can_manage_users: boolean;
     can_access_analytics: boolean;
   }): Promise<CreateRoleResponse> => {
-    const response = await api.post<CreateRoleResponse>('/admin/roles/create/', roleData);
+    const response = await api.post<CreateRoleResponse>('/api/admin/roles/create/', roleData);
     return response.data;
   },
 
@@ -407,12 +407,12 @@ export const roleService = {
     can_manage_users?: boolean;
     can_access_analytics?: boolean;
   }): Promise<UpdateRoleResponse> => {
-    const response = await api.put<UpdateRoleResponse>(`/admin/roles/${roleId}/update/`, roleData);
+    const response = await api.put<UpdateRoleResponse>(`/api/admin/roles/${roleId}/update/`, roleData);
     return response.data;
   },
 
   deleteRole: async (roleId: number): Promise<{ message: string; status: string }> => {
-    const response = await api.delete<{ message: string; status: string }>(`/admin/roles/${roleId}/delete/`);
+    const response = await api.delete<{ message: string; status: string }>(`/api/admin/roles/${roleId}/delete/`);
     return response.data;
   },
 };
@@ -420,7 +420,7 @@ export const roleService = {
 // Permission Management API
 export const permissionService = {
   getPermissions: async (): Promise<PermissionsResponse> => {
-    const response = await api.get<PermissionsResponse>('/admin/permissions/');
+    const response = await api.get<PermissionsResponse>('/api/admin/permissions/');
     return response.data;
   },
 };
@@ -428,7 +428,7 @@ export const permissionService = {
 // User Groups API
 export const userGroupService = {
   getUserGroups: async (): Promise<UserGroupsResponse> => {
-    const response = await api.get<UserGroupsResponse>('/admin/user-groups/');
+    const response = await api.get<UserGroupsResponse>('/api/admin/user-groups/');
     return response.data;
   },
 };
@@ -487,22 +487,22 @@ interface BulkDeleteAnalysisResponse {
 // Analysis History API
 export const analysisService = {
   getUserHistory: async (): Promise<AnalysisHistoryResponse> => {
-    const response = await api.get<AnalysisHistoryResponse>('/user/analysis-history/');
+    const response = await api.get<AnalysisHistoryResponse>('/api/user/analysis-history/');
     return response.data;
   },
 
   getAnalysisDetail: async (analysisId: string): Promise<AnalysisDetailResponse> => {
-    const response = await api.get<AnalysisDetailResponse>(`/analysis/${analysisId}/`);
+    const response = await api.get<AnalysisDetailResponse>(`/api/analysis/${analysisId}/`);
     return response.data;
   },
 
   deleteAnalysis: async (analysisId: string): Promise<DeleteAnalysisResponse> => {
-    const response = await api.delete<DeleteAnalysisResponse>(`/analysis/${analysisId}/delete/`);
+    const response = await api.delete<DeleteAnalysisResponse>(`/api/analysis/${analysisId}/delete/`);
     return response.data;
   },
 
   bulkDeleteAnalyses: async (analysisIds: string[]): Promise<BulkDeleteAnalysisResponse> => {
-    const response = await api.post<BulkDeleteAnalysisResponse>('/user/analysis/bulk-delete/', { 
+    const response = await api.post<BulkDeleteAnalysisResponse>('/api/user/analysis/bulk-delete/', { 
       analysis_ids: analysisIds 
     });
     return response.data;
@@ -510,7 +510,7 @@ export const analysisService = {
 
   exportHistory: async (): Promise<AnalysisHistoryResponse> => {
     // For CSV export, we'll just get the data and format it client-side
-    const response = await api.get<AnalysisHistoryResponse>('/user/analysis-history/');
+    const response = await api.get<AnalysisHistoryResponse>('/api/user/analysis-history/');
     return response.data;
   },
 };
@@ -525,21 +525,21 @@ export interface ExportService {
 
 export const exportService: ExportService = {
   exportAnalysisPDF: async (analysisId: number): Promise<Blob> => {
-    const response = await api.get(`/export/analysis/${analysisId}/pdf/`, {
+    const response = await api.get(`/api/export/analysis/${analysisId}/pdf/`, {
       responseType: 'blob',
     });
     return response.data;
   },
 
   exportUserHistoryCSV: async (): Promise<Blob> => {
-    const response = await api.get('/export/user/history/csv/', {
+    const response = await api.get('/api/export/user/history/csv/', {
       responseType: 'blob',
     });
     return response.data;
   },
 
   exportBulkAnalysisPDF: async (analysisIds: number[]): Promise<Blob> => {
-    const response = await api.post('/export/bulk/pdf/', 
+    const response = await api.post('/api/export/bulk/pdf/', 
       { analysis_ids: analysisIds },
       { responseType: 'blob' }
     );
@@ -604,17 +604,17 @@ export interface UserFeedbackHistoryResponse {
 
 export const feedbackService = {
   submitFeedback: async (feedbackData: FeedbackSubmission): Promise<FeedbackSubmissionResponse> => {
-    const response = await api.post<FeedbackSubmissionResponse>('/feedback/submit/', feedbackData);
+    const response = await api.post<FeedbackSubmissionResponse>('/api/feedback/submit/', feedbackData);
     return response.data;
   },
 
   getAnalysisFeedback: async (analysisId: number): Promise<FeedbackResponse> => {
-    const response = await api.get<FeedbackResponse>(`/feedback/analysis/${analysisId}/`);
+    const response = await api.get<FeedbackResponse>(`/api/feedback/analysis/${analysisId}/`);
     return response.data;
   },
 
   getUserFeedbackHistory: async (): Promise<UserFeedbackHistoryResponse> => {
-    const response = await api.get<UserFeedbackHistoryResponse>('/feedback/user/history/');
+    const response = await api.get<UserFeedbackHistoryResponse>('/api/feedback/user/history/');
     return response.data;
   },
 };

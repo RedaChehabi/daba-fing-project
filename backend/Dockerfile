@@ -6,13 +6,17 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies including OpenCV requirements
+# Install Python and system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
     build-essential \
     libpq-dev \
     libgl1-mesa-glx \
@@ -33,12 +37,14 @@ RUN apt-get update && \
     libpng-dev \
     libtiff-dev \
     libatlas-base-dev \
-    python3-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Create symbolic link for python
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
 
 # Install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY . .

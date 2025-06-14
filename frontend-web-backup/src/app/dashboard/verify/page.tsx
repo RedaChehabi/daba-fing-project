@@ -70,123 +70,6 @@ interface ReviewStats {
   urgentReviews: number
 }
 
-// Enhanced Sample Data
-const samplePendingReviews: PendingReview[] = [
-  {
-    analysisId: "ANL-205",
-    userId: "USR-012",
-    fingerprintId: "FP-102",
-    analysisDate: "1 hour ago",
-    systemFeedback: "Possible Match: Pattern Delta",
-    status: "Urgent",
-    priority: "Critical",
-    confidence: 85,
-    analysisType: "Pattern Matching",
-    submittedBy: "Dr. Smith"
-  },
-  {
-    analysisId: "ANL-204",
-    userId: "USR-088",
-    fingerprintId: "FP-101",
-    analysisDate: "2 hours ago",
-    systemFeedback: "Classification: Whorl",
-    status: "Needs Review",
-    priority: "High",
-    confidence: 92,
-    analysisType: "Classification",
-    submittedBy: "Dr. Johnson"
-  },
-  {
-    analysisId: "ANL-203",
-    userId: "USR-034",
-    fingerprintId: "FP-100",
-    analysisDate: "4 hours ago",
-    systemFeedback: "Anomaly Detected: Scar Tissue",
-    status: "In Progress",
-    priority: "Medium",
-    confidence: 78,
-    analysisType: "Anomaly Detection",
-    submittedBy: "Dr. Williams"
-  },
-  {
-    analysisId: "ANL-202",
-    userId: "USR-110",
-    fingerprintId: "FP-099",
-    analysisDate: "6 hours ago",
-    systemFeedback: "Classification: Arch",
-    status: "Needs Review",
-    priority: "Low",
-    confidence: 95,
-    analysisType: "Classification",
-    submittedBy: "Dr. Brown"
-  },
-]
-
-const sampleCompletedReviews: CompletedReview[] = [
-  {
-    analysisId: "ANL-201",
-    fingerprintId: "FP-096",
-    userId: "USR-005",
-    reviewDate: "Apr 7, 2023",
-    systemFeedback: "Classification: Loop",
-    expertDecision: "Confirmed",
-    reviewedBy: "Dr. Anderson",
-    reviewTime: 15,
-    notes: "Clear loop pattern identified"
-  },
-  {
-    analysisId: "ANL-200",
-    fingerprintId: "FP-095",
-    userId: "USR-015",
-    reviewDate: "Apr 7, 2023",
-    systemFeedback: "Possible Match: Pattern Arch",
-    expertDecision: "Confirmed",
-    reviewedBy: "Dr. Taylor",
-    reviewTime: 22
-  },
-  {
-    analysisId: "ANL-199",
-    fingerprintId: "FP-094",
-    userId: "USR-021",
-    reviewDate: "Apr 6, 2023",
-    systemFeedback: "Classification: Whorl",
-    expertDecision: "Correction Needed",
-    reviewedBy: "Dr. Wilson",
-    reviewTime: 35,
-    notes: "Partial whorl, requires reclassification"
-  },
-  {
-    analysisId: "ANL-198",
-    fingerprintId: "FP-093",
-    userId: "USR-002",
-    reviewDate: "Apr 6, 2023",
-    systemFeedback: "Anomaly Detected: Minutiae Sparse",
-    expertDecision: "Confirmed",
-    reviewedBy: "Dr. Davis",
-    reviewTime: 18
-  },
-  {
-    analysisId: "ANL-197",
-    fingerprintId: "FP-092",
-    userId: "USR-045",
-    reviewDate: "Apr 5, 2023",
-    systemFeedback: "Classification: Loop",
-    expertDecision: "Disputed",
-    reviewedBy: "Dr. Miller",
-    reviewTime: 45,
-    notes: "Inconclusive pattern, requires additional analysis"
-  },
-]
-
-const sampleStats: ReviewStats = {
-  totalPending: 4,
-  totalCompleted: 127,
-  averageReviewTime: 23,
-  accuracyRate: 94.2,
-  todayReviewed: 8,
-  urgentReviews: 1
-}
-
 export default function FeedbackReviewPage() {
   // State Management
   const [isLoading, setIsLoading] = useState(true)
@@ -199,25 +82,36 @@ export default function FeedbackReviewPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
   const [activeTab, setActiveTab] = useState("pending")
 
-  // Simulate data loading
+  // Load data from API
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true)
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        setPendingReviews(samplePendingReviews)
-        setCompletedReviews(sampleCompletedReviews)
-        setStats(sampleStats)
-      } catch (err) {
-        setError("Failed to load review data")
+        setError(null)
+        
+        // TODO: Replace with actual API endpoints for expert review system
+        // For now, return empty arrays since we haven't implemented the expert review backend yet
+        setPendingReviews([])
+        setCompletedReviews([])
+        setStats({
+          totalPending: 0,
+          totalCompleted: 0,
+          averageReviewTime: 0,
+          accuracyRate: 0,
+          todayReviewed: 0,
+          urgentReviews: 0
+        })
+        
+      } catch (error) {
+        console.error('Error loading review data:', error)
+        setError('Failed to load review data. Please try again.')
       } finally {
         setIsLoading(false)
       }
     }
 
     loadData()
-  }, [])
+  }, []);
 
   // Filter functions
   const filteredPendingReviews = pendingReviews.filter(review => {

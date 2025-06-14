@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL_CONTEXT}/userprofile/`, {
+      const response = await fetch(`${API_BASE_URL_CONTEXT}/api/userprofile/`, {
         headers: { "Authorization": `Token ${tokenToUse}` }
       });
 
