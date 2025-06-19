@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
-import { File, Camera, Loader2, AlertCircle } from "lucide-react"; // Added File and Camera icons
+import { File, Camera } from "lucide-react"; // Loader2, AlertCircle removed as unused
 import fingerprintService from "@/services/fingerprint-service"; // Added placeholder import for fingerprintService
 
 const FileUploadArea = lazy(() => import("@/components/upload/file-upload-area"))
@@ -32,6 +32,7 @@ export default function UploadPage() {
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null); // Define AnalysisResult interface
+  const [analysisId, setAnalysisId] = useState<number | string | null>(null);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
@@ -43,6 +44,7 @@ export default function UploadPage() {
   const [fingerPosition, setFingerPosition] = useState("index"); // Default or ""
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const webcamRef = useRef<any>(null); 
 
   // Define AnalysisResult interface if not already defined
@@ -83,6 +85,7 @@ export default function UploadPage() {
         setUploadStatus("idle");
         setUploadProgress(0);
         setAnalysisResult(null);
+        setAnalysisId(null);
         setActiveTab("upload");
         setErrorMessage(null);
         setTitle(""); // Clear metadata fields too
@@ -233,6 +236,8 @@ export default function UploadPage() {
 
       if (uploadResponse && uploadResponse.id) {
         const analysisResponse = await fingerprintService.analyzeFingerprint(uploadResponse.id);
+        const analysisIdLocal = analysisResponse.id ?? uploadResponse.id;
+        setAnalysisId(analysisIdLocal);
         setUploadProgress(100);
 
         const result: AnalysisResult = {
@@ -248,26 +253,16 @@ export default function UploadPage() {
       } else {
         throw new Error("Fingerprint upload failed or did not return an ID.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearInterval(progressInterval);
       setUploadProgress(0);
       console.error("Analysis or Upload Error:", err);
       
       let specificError = "Failed to upload or analyze fingerprint. Please try again.";
-      if (err.response && err.response.data) {
-        const errorData = err.response.data;
-        if (errorData.detail) {
-          specificError = errorData.detail;
-        } else if (typeof errorData === 'object') {
-          const fieldErrors = Object.values(errorData).flat();
-          if (fieldErrors.length > 0) {
-            specificError = (fieldErrors[0] as string);
-          }
-        } else if (typeof errorData === 'string') {
-          specificError = errorData;
-        }
-      } else if (err.message) {
+      if (err instanceof Error) {
         specificError = err.message;
+      } else if (typeof err === 'string') {
+        specificError = err;
       }
       
       setErrorMessage(specificError);
@@ -294,10 +289,10 @@ export default function UploadPage() {
     [cameraEnabled, capturedImage, uploadStatus, errorMessage, videoConstraints, capture, handleCameraEnable, handleCloseCamera, handleAnalyze, webcamRef]
   );
 
-  const resultsViewProps = useMemo(
-    () => ({ analysisResult, previewUrl, capturedImage, onUploadAnother: handleClearSelection }),
-    [analysisResult, previewUrl, capturedImage, handleClearSelection]
-  );
+  const resultsViewProps = useMemo(() => {
+    if (!analysisResult || analysisId === null) return null;
+    return { analysisId, analysisResult, previewUrl, capturedImage, onUploadAnother: handleClearSelection } as const;
+  }, [analysisId, analysisResult, previewUrl, capturedImage, handleClearSelection]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -454,11 +449,11 @@ export default function UploadPage() {
             </TabsContent>
           </motion.div>
         )}
-        {activeTab === "results" && analysisResult && (
+        {activeTab === "results" && analysisResult && resultsViewProps && (
             <motion.div /* ... */ >
                 <TabsContent value="results" className="mt-0">
                     <Suspense fallback={<div>Loading Results...</div>}>
-                        <ResultsView {...resultsViewProps} />
+                        {resultsViewProps && <ResultsView {...resultsViewProps} />}
                     </Suspense>
                 </TabsContent>
             </motion.div>

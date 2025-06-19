@@ -16,36 +16,11 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { Badge } from "@/components/ui/badge"
-import { Search, Filter, Download, Eye, Trash2, Calendar, ChevronDown } from "lucide-react"
+import { Search, Filter, Download, Eye, Trash2, Calendar, ChevronDown, Loader2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
 import { format } from "date-fns"
-
-// API service for analysis history
-const analysisService = {
-  async getUserHistory() {
-    // This would call your backend API - for now return empty array
-    // In a real implementation, you'd make an actual API call to your Django backend
-    return { history: [], total_count: 0, status: 'success' };
-  },
-
-  async deleteAnalysis(analysisId: string) {
-    // This would call your backend API to delete an analysis
-    console.log(`Deleting analysis ${analysisId}`);
-    return { message: 'Analysis deleted successfully', status: 'success' };
-  },
-
-  async bulkDeleteAnalyses(analysisIds: string[]) {
-    // This would call your backend API to delete multiple analyses
-    console.log(`Bulk deleting analyses:`, analysisIds);
-    return { message: `${analysisIds.length} analyses deleted successfully`, deleted_count: analysisIds.length, status: 'success' };
-  },
-
-  async exportHistory() {
-    // This would call your backend API to export history
-    return { history: [], total_count: 0, status: 'success' };
-  },
-};
+import api from "@/services/api"
 
 // Interface for the API response
 interface AnalysisHistoryItem {
@@ -57,6 +32,29 @@ interface AnalysisHistoryItem {
   status: string;
   image_id: number;
   processing_time: string;
+}
+
+// Real API helpers
+const analysisService = {
+  async getUserHistory() {
+    const res = await api.get<{ history: AnalysisHistoryItem[]; total_count: number; status: string }>(
+      '/api/user/analysis-history/'
+    )
+    return res.data
+  },
+
+  async deleteAnalysis(id: string) {
+    return api.delete(`/api/analysis/${id}/delete/`)
+  },
+
+  async bulkDeleteAnalyses(ids: string[]) {
+    return api.post('/api/user/analysis/bulk-delete/', { analysis_ids: ids })
+  },
+
+  async exportHistory() {
+    const res = await api.get('/api/export/user/history/csv/', { responseType: 'blob' })
+    return res.data as Blob
+  },
 }
 
 export default function HistoryPage() {
@@ -75,8 +73,8 @@ export default function HistoryPage() {
   const loadHistory = async () => {
     try {
       setLoading(true)
-      const response = await analysisService.getUserHistory()
-      setHistoryData(response.history)
+      const { history } = await analysisService.getUserHistory()
+      setHistoryData(history)
     } catch (error) {
       console.error('Error loading history:', error)
       alert('Failed to load analysis history. Please try again.')
@@ -118,23 +116,7 @@ export default function HistoryPage() {
 
   const handleExport = async () => {
     try {
-      const response = await analysisService.exportHistory()
-      // Convert to CSV format
-      const csvContent = [
-        ['ID', 'Date', 'Classification', 'Ridge Count', 'Confidence', 'Status', 'Processing Time'].join(','),
-        ...response.history.map((item: AnalysisHistoryItem) => [
-          item.id,
-          new Date(item.date).toLocaleDateString(),
-          item.classification,
-          item.ridge_count,
-          `${item.confidence}%`,
-          item.status,
-          item.processing_time
-        ].join(','))
-      ].join('\n')
-      
-      // Download the CSV
-      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const blob = await analysisService.exportHistory()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -323,7 +305,13 @@ export default function HistoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredData.length === 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="h-24 text-center">
+                      <Loader2 className="animate-spin h-8 w-8" />
+                    </TableCell>
+                  </TableRow>
+                ) : filteredData.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
                       No results found.

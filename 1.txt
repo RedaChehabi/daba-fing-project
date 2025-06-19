@@ -1,0 +1,162 @@
+import torch
+import torch.nn as nn
+from torchvision.models import mobilenet_v2
+
+class MobileNetMultiTask(nn.Module):
+    def __init__(self, num_classes=12, dropout_rate=0.5):
+        super().__init__()
+        self.base_model = mobilenet_v2(pretrained=True)
+        in_features = self.base_model.classifier[1].in_features
+        
+        # Remove original classifier
+        self.base_model.classifier = nn.Identity()
+        
+        # Add a Dropout layer after the feature extractor
+        self.dropout = nn.Dropout(p=dropout_rate)
+        
+        # Classification head
+        self.class_head = nn.Linear(in_features, num_classes)
+        
+        # Ridge count regression head
+        self.ridge_head = nn.Linear(in_features, 1)
+
+    def forward(self, x):
+        features = self.base_model(x)
+        
+        # Apply dropout to the features before passing them to the heads
+        features = self.dropout(features)
+        
+        class_logits = self.class_head(features)
+        ridge_output = self.ridge_head(features)
+        return class_logits, ridge_output.squeeze(1) # [B], not [B,1]
+—---------------------------------------------------------
+from collections import OrderedDict
+
+mobilenet_v2_best = MobileNetMultiTask(NUM_CLASSES).to(DEVICE)
+checkpoint = torch.load(BEST_PTH, map_location=DEVICE)
+
+new_state_dict = OrderedDict()
+for k, v in checkpoint.items():
+    name = k[7:] if k.startswith('module.') else k
+    new_state_dict[name] = v
+
+mobilenet_v2_best.load_state_dict(new_state_dict)
+
+if torch.cuda.device_count() > 1:
+    print(f"Using {torch.cuda.device_count()} GPUs for best model evaluation.")
+    mobilenet_v2_best = nn.DataParallel(mobilenet_v2_best)
+mobilenet_v2_best.to(DEVICE)
+mobilenet_v2_best.eval()
+—------------------------------------------------------------
+import torch
+
+def save_onnx(model,model_path):
+
+    # 1) Put model in eval mode
+    model = model.module if isinstance(model, torch.nn.DataParallel) else model
+    model.eval()
+    
+    # 2) Create a dummy input matching your training dimensions
+    #    e.g., batch-size 1, 3 channels, 224×224 pixels
+    device = next(model.parameters()).device
+    dummy_input = torch.randn(1, 3, 224, 224, device=device)
+    
+    # 3) Export to ONNX
+    torch.onnx.export(
+        model,
+        dummy_input,
+        model_path,
+        export_params=True,        # store weights
+        opset_version=17,          # use a recent ONNX opset
+        do_constant_folding=True,  # pre-fold constants for speed
+        input_names=["input"],     # names for graph inputs
+        output_names=["output"],   # names for graph outputs
+        dynamic_axes={             # allow variable batch size
+            "input": {0: "batch"},
+            "output": {0: "batch"}
+        }
+    )
+    
+    print(model_path ,"saved successfully")
+—------------------------------------------
+IMG_SIZE=224
+def preprocess(path):
+    img = Image.open(path).convert('RGB')
+    img = img.resize((IMG_SIZE, IMG_SIZE), Image.BILINEAR)
+    arr = np.array(img).astype(np.float32) / 255.0
+    arr = arr.transpose(2,0,1)[None, ...]
+    mean = np.array([0.5]*3, dtype=np.float32)[:,None,None]
+    std  = np.array([0.5]*3, dtype=np.float32)[:,None,None]
+    return (arr - mean) / std
+
+import numpy as np
+
+def softmax(logits: np.ndarray, axis: int = 1) -> np.ndarray:
+    """
+    Compute softmax in a numerically stable way:
+    Args:
+        logits: np.ndarray of shape (N, C) or (batch_size, num_classes)
+        axis: dimension along which to apply softmax
+
+    Returns:
+        probs: np.ndarray of same shape, where each row sums to 1
+    """
+    # 1. Shift by max for numerical stability
+    shift = logits - np.max(logits, axis=axis, keepdims=True)              
+    # 2. Exponentiate
+    exps = np.exp(shift)                                                   
+    # 3. Normalize
+    sums = np.sum(exps, axis=axis, keepdims=True)                          
+    return exps / sums
+—----------------------------------------------------
+import onnxruntime as ort
+import os
+import numpy as np
+from PIL import Image
+
+# 1) Create the ONNX Runtime session
+session = ort.InferenceSession("/kaggle/working/resnet50.onnx")            # :contentReference[oaicite:6]{index=6}
+
+
+# 2) Loop over PNGs and infer
+input_folder = "/kaggle/input/binary-figs-0-1-4-5/binary_figs/figs_0"
+for fname in os.listdir(input_folder):
+    if not fname.lower().endswith(".png"):
+        continue
+    img_path = os.path.join(input_folder, fname)
+    # Preprocess to get a (1,C,H,W) float32 array
+    x = preprocess(img_path)                       # uses PIL
+    # 3) Run the model: returns a list of outputs
+    outputs = session.run(
+        None,                                          # all output names
+        {"input": x}                                   # input name → array
+    )
+    logits = outputs[0]  # numpy array of shape (1,classes,…) or similar
+    probs = softmax(logits, axis=1)          # shape: (1, NUM_CLASSES) :contentReference[oaicite:6]{index=6}
+    print(f"{fname}: probabilities = {probs}")
+—----------------------------------------------------
+def get_class(pred):
+    CLASS_MAP = {'plain Arch': 0, 'Tented Arch': 1, 'Right Loop': 2, 'Left Loop': 3, 'Whorl': 4}
+    # Reverse the CLASS_MAP to get index-to-class mapping
+    INDEX_TO_CLASS = {v: k for k, v in CLASS_MAP.items()}
+    
+    # Get the index of the highest probability
+    predicted_index = np.argmax(pred)
+    
+    # Decode the class
+    return INDEX_TO_CLASS[predicted_index]
+    
+print(f"Predicted class: {get_class(predicted_class)}")
+—---------------------------------------------------------------------
+img_path="/kaggle/input/binary-figs-0-1-4-5/binary_figs/figs_0/binary_f0001_01.png"
+def get_pred(onnx_session,img_path):
+    x = preprocess(img_path)                       # uses PIL
+    # 3) Run the model: returns a list of outputs
+    outputs = session.run(
+        None,                                          # all output names
+        {"input": x}                                   # input name → array
+    )
+    return softmax(outputs[0], axis=1)   # numpy array of shape (1,classes,…) or similar
+pred=get_pred(session,img_path)
+print(pred)
+

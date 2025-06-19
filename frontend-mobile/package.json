@@ -30,5 +30,21 @@
     "@types/react": "~19.0.10",
     "typescript": "~5.8.3"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "name": "DabaFing",
+    "slug": "dabafing-mobile",
+    "version": "1.0.0",
+    "android": {
+      "package": "com.yourcompany.dabafing",
+      "permissions": [],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "extra": {
+      "API_URL": "https://your-api.com/api"
+    }
+  }
 }

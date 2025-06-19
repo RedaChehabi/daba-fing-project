@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -103,15 +103,27 @@ const fingerprintService = {
   /**
    * Get details of a specific fingerprint
    */
-  async getFingerprintDetails(fingerprintId: number) {
+  async getFingerprintDetails(analysisId: string) {
     try {
-      const response = await api.get(`/api/fingerprints/${fingerprintId}/`);
+      const response = await api.get(`/api/analysis/${analysisId}/`);
       return response.data;
     } catch (error) {
       console.error("Error fetching fingerprint details:", error);
       throw error;
     }
   },
+
+  /**
+   * Download analysis PDF report
+   */
+  async exportAnalysisPDF(analysisId: number | string): Promise<Blob> {
+    const response = await api.get(`/api/export/analysis/${analysisId}/pdf/`, {
+      responseType: 'blob',
+    });
+    return response.data as Blob;
+  },
 };
+
+console.log(process.env.NEXT_PUBLIC_API_URL);
 
 export default fingerprintService;

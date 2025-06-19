@@ -31,14 +31,73 @@ from django.http import HttpResponse
 # Import the new image processing capabilities
 from .image_processing import FingerprintImageProcessor, FingerprintMerger
 
+# ---------------------------------------------------------------------------
+# ML model (ONNX) – load once at startup (optional)
+# ---------------------------------------------------------------------------
+
+try:
+    from pathlib import Path
+    from django.conf import settings
+    from backend.ml import FingerClassifier, load_checkpoint, save_onnx  # type: ignore
+
+    _ONNX_MODEL_PATH = Path(settings.BASE_DIR) / "mobilenet_v2_best.onnx"
+    _PTH_MODEL_PATH = Path(settings.BASE_DIR) / "mobilenet_v2_best.pth"
+
+    if _ONNX_MODEL_PATH.exists():
+        _FINGER_MODEL = FingerClassifier(_ONNX_MODEL_PATH)
+    elif _PTH_MODEL_PATH.exists():
+        # Convert to ONNX on-the-fly then load
+        print("[ML] ONNX model not found but .pth checkpoint present – exporting to ONNX…")
+        model = load_checkpoint(_PTH_MODEL_PATH, device="cpu")
+        save_onnx(model, _ONNX_MODEL_PATH)
+        _FINGER_MODEL = FingerClassifier(_ONNX_MODEL_PATH)
+    else:
+        _FINGER_MODEL = None
+
+    if _FINGER_MODEL:
+        print(f"[ML] ONNX fingerprint model loaded from {_ONNX_MODEL_PATH}")
+    else:
+        print("[ML] No fingerprint ML model found – falling back to CV pipeline")
+except Exception as _e:
+    print(f"[ML] Failed to load ONNX model: {_e}")
+    _FINGER_MODEL = None
+
 
 # --- Enhanced Analysis Function ---
 def perform_fingerprint_analysis(image_path):
     """
-    Perform fingerprint analysis using computer vision
+    Perform fingerprint analysis using computer vision (fallback) or ONNX model if available
     """
     import time
     import random
+    
+    # ------------------------------------------------------------------
+    # 1) Fast path – use ONNX model if it was successfully loaded
+    # ------------------------------------------------------------------
+    if _FINGER_MODEL is not None:
+        try:
+            t0 = time.time()
+            label, ridge_count, probs = _FINGER_MODEL.analyse(image_path)
+            processing_time_taken = time.time() - t0
+
+            return {
+                "classification": label,
+                "ridge_count": int(round(ridge_count)),
+                "confidence_score": float(max(probs)),
+                "processing_time": f"{processing_time_taken:.2f}s",
+                "analysis_details": {
+                    "message": "Inference via ONNX model",
+                    "model_type": "MobileNetMultiTask (ONNX)",
+                    "probabilities": probs.tolist(),
+                },
+            }
+        except Exception as _ml_err:
+            # Log the error & continue to fallback CV pipeline
+            print(f"[ML] Inference failed – falling back to CV pipeline: {_ml_err}")
+
+    # ------------------------------------------------------------------
+    # 2) Fallback – legacy computer-vision processing
+    # ------------------------------------------------------------------
     
     start_time = time.time()
     

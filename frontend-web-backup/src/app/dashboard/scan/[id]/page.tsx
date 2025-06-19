@@ -1,3 +1,5 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -5,40 +7,52 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Fingerprint, Download, Share2, ChevronLeft, Eye } from "lucide-react"
 import Link from "next/link"
-
-// Mock data for a fingerprint scan
-const scanData = {
-  id: "FP-123",
-  type: "Right Index",
-  status: "Analyzed",
-  uploadDate: "Apr 5, 2023",
-  analyzedDate: "Apr 6, 2023",
-  user: "John Smith",
-  pattern: "Whorl",
-  patternSubtype: "Double Loop",
-  confidenceScore: 95,
-  minutiaeCount: 38,
-  notes: "Clear impression with well-defined ridges.",
-}
+import { useEffect, useState } from "react"
+import fingerprintService from "@/services/fingerprint-service"
 
 interface PageProps {
-  params: Promise<{ id: string }>
+  params: { id: string }
 }
 
-export async function generateStaticParams() {
-  // For static export, we need to provide the possible id values
-  // In a real app, you would fetch this from your API
-  return [
-    { id: 'FP-123' },
-    { id: 'FP-124' },
-    { id: 'FP-125' },
-  ]
+interface ScanData {
+  id: string | number
+  type?: string
+  status?: string
+  uploadDate?: string
+  analyzedDate?: string
+  user?: string
+  pattern?: string
+  patternSubtype?: string
+  confidenceScore?: number
+  minutiaeCount?: number
+  notes?: string
+  [key: string]: string | number | null | undefined
 }
 
-export default async function ScanDetailPage({ params }: PageProps) {
-  const { id } = await params
-  // In a real app, you would fetch scan data based on id
-  const scan = scanData
+export default function ScanDetailPage({ params }: PageProps) {
+  const { id } = params
+
+  const [scan, setScan] = useState<ScanData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const data = await fingerprintService.getFingerprintDetails(id)
+        setScan(data as ScanData)
+      } catch (err: unknown) {
+        console.error(err)
+        setError("Failed to fetch fingerprint details")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [id])
+
+  if (loading) return <p>Loading…</p>
+  if (error || !scan) return <p className="text-destructive">{error ?? 'Fingerprint not found'}</p>
 
   return (
     <div className="space-y-6">

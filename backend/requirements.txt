@@ -30,3 +30,9 @@ scipy==1.15.3  # Latest stable version
 scikit-image==0.25.2  # Latest stable version
 matplotlib==3.10.0  # Latest stable version
 scikit-learn==1.6.1  # Latest stable version
+
+# Machine-Learning / ONNX dependencies
+torch==2.7.1      # Works on macOS arm64, Python 3.13 (CPU build via PyTorch index)
+torchvision==0.22.1
+onnx>=1.16.0      # Any 1.16+ version is fine
+onnxruntime==1.22.0

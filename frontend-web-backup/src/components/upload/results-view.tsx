@@ -10,6 +10,8 @@ import { motion } from 'framer-motion'
 import { Fingerprint, BarChart, Clock, Download, Share2, CheckCircle, FileImage, Activity, Zap } from 'lucide-react'
 import { memo } from 'react'
 import RidgeVisualization from '@/components/visualization/ridge-visualization'
+import fingerprintService from '@/services/fingerprint-service'
+import { useState } from 'react'
 
 interface AnalysisResult {
   classification: string
@@ -34,6 +36,7 @@ interface AnalysisResult {
 }
 
 interface ResultsViewProps {
+  analysisId: number | string
   analysisResult: AnalysisResult
   previewUrl: string | null
   capturedImage: string | null
@@ -55,7 +58,9 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 }
 
-function ResultsView({ analysisResult, previewUrl, capturedImage, onUploadAnother }: ResultsViewProps) {
+function ResultsView({ analysisId, analysisResult, previewUrl, capturedImage, onUploadAnother }: ResultsViewProps) {
+  const [downloading, setDownloading] = useState(false)
+
   if (!analysisResult) return null
 
   const imageUrl = previewUrl || capturedImage || ''
@@ -77,6 +82,41 @@ function ResultsView({ analysisResult, previewUrl, capturedImage, onUploadAnothe
     if (quality >= 70) return { variant: 'secondary' as const, text: 'Good' }
     if (quality >= 50) return { variant: 'outline' as const, text: 'Fair' }
     return { variant: 'destructive' as const, text: 'Poor' }
+  }
+
+  const handleDownload = async () => {
+    try {
+      setDownloading(true)
+      const blob = await fingerprintService.exportAnalysisPDF(analysisId)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `analysis_${analysisId}.pdf`
+      link.click()
+      URL.revokeObjectURL(url)
+      setDownloading(false)
+    } catch (err) {
+      console.error('Download report failed', err)
+      setDownloading(false)
+    }
+  }
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/dashboard/scan/${analysisId}`
+    if (navigator.share) {
+      try {
+        await navigator.share({ url: shareUrl, title: 'Fingerprint Analysis Result' })
+      } catch (err) {
+        console.error('Share failed', err)
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl)
+        alert('Link copied to clipboard')
+      } catch {
+        alert('Unable to copy link')
+      }
+    }
   }
 
   return (
@@ -262,11 +302,11 @@ function ResultsView({ analysisResult, previewUrl, capturedImage, onUploadAnothe
             </Button>
             
             <div className="flex gap-2">
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" onClick={handleDownload} disabled={downloading}>
                 <Download className="h-4 w-4" />
-                <span>Download Report</span>
+                <span>{downloading ? 'Preparing…' : 'Download Report'}</span>
               </Button>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2" onClick={handleShare}>
                 <Share2 className="h-4 w-4" />
                 <span>Share Results</span>
               </Button>
